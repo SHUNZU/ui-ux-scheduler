@@ -77,6 +77,17 @@ export async function createManualRequirement(requirement: Partial<DesignRequire
   return payload.requirements ?? null;
 }
 
+export async function deleteCloudRequirement(sourceId: string, editKey = ""): Promise<DesignRequirement[] | null> {
+  const response = await fetch(`/api/deleteRequirement?sourceId=${encodeURIComponent(sourceId)}`, {
+    method: "DELETE",
+    headers: getEditHeaders(editKey)
+  });
+
+  if (!response.ok) return null;
+  const payload = (await response.json()) as { requirements?: DesignRequirement[] };
+  return payload.requirements ?? null;
+}
+
 async function fetchCloudRequirements(): Promise<SyncResult | null> {
   try {
     const response = await fetch("/api/requirements");

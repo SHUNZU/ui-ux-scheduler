@@ -44,6 +44,19 @@ async function updateRequirement(sourceId, patch) {
   return rows[0] ? fromDbRow(rows[0]) : null;
 }
 
+async function deleteRequirement(sourceId) {
+  if (!hasSupabaseConfig()) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  return supabaseRequest(`${TABLE}?source_id=eq.${encodeURIComponent(sourceId)}`, {
+    method: "DELETE",
+    headers: {
+      Prefer: "return=representation"
+    }
+  });
+}
+
 async function supabaseRequest(path, init = {}) {
   const url = `${process.env.SUPABASE_URL}/rest/v1/${path}`;
   const response = await fetch(url, {
@@ -160,6 +173,7 @@ function fromDbRow(row) {
 module.exports = {
   fromDbRow,
   hasSupabaseConfig,
+  deleteRequirement,
   listRequirements,
   updateRequirement,
   upsertRequirements

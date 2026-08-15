@@ -1,31 +1,27 @@
-import { CalendarRange, Eye, GanttChartSquare, PencilLine, RefreshCcw, Table2, WandSparkles } from "lucide-react";
+import { CalendarRange, Eye, PencilLine, RefreshCcw, WandSparkles } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
 interface ToolbarProps {
   filters: Filters;
-  viewMode: "gantt" | "table" | "impact";
   owners: string[];
   requesters: string[];
   syncLabel: string;
   loading: boolean;
   canEdit: boolean;
   onChange: (filters: Filters) => void;
-  onViewModeChange: (viewMode: "gantt" | "table" | "impact") => void;
   onSync: () => void;
   onReschedule: () => void;
 }
 
 export function Toolbar({
   filters,
-  viewMode,
   owners,
   requesters,
   syncLabel,
   loading,
   canEdit,
   onChange,
-  onViewModeChange,
   onSync,
   onReschedule
 }: ToolbarProps) {
@@ -54,19 +50,6 @@ export function Toolbar({
       </div>
 
       <div className="filters">
-        <div className="segmented" aria-label="视图切换">
-          <button className={viewMode === "gantt" ? "active" : ""} onClick={() => onViewModeChange("gantt")} title="甘特图">
-            <GanttChartSquare size={15} />
-            甘特
-          </button>
-          <button className={viewMode === "table" ? "active" : ""} onClick={() => onViewModeChange("table")} title="表格">
-            <Table2 size={15} />
-            表格
-          </button>
-          <button className={viewMode === "impact" ? "active" : ""} onClick={() => onViewModeChange("impact")} title="插单影响">
-            插单影响
-          </button>
-        </div>
         <select value={filters.requester} onChange={(event) => patch({ requester: event.target.value })}>
           <option value="">全部下发人</option>
           {requesters.map((requester) => (

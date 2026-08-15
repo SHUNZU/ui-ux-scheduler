@@ -3,14 +3,15 @@ import { addDays, format, parseISO } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { GanttBoard } from "./components/GanttBoard";
 import { RequirementDrawer } from "./components/RequirementDrawer";
-import { ProjectTables } from "./components/ProjectTables";
+import { RequirementTable } from "./components/RequirementTable";
 import { SummaryRail } from "./components/SummaryRail";
 import { Toolbar } from "./components/Toolbar";
+import { ViewTabs } from "./components/ViewTabs";
 import { scheduleRequirements, summarizeOwnerLoads } from "./lib/scheduler";
 import { todayIso, toIsoDate } from "./lib/date";
 import { UNASSIGNED_OWNER } from "./lib/constants";
 import { upsertRequirementsToBitable } from "./services/bitable";
-import { createManualRequirement, saveRequirementPatch, syncProjectRequirements, triggerProjectSync } from "./services/projectSync";
+import { createManualRequirement, deleteCloudRequirement, saveRequirementPatch, syncProjectRequirements, triggerProjectSync } from "./services/projectSync";
 import { DesignRequirement, Filters, ScheduledRequirement } from "./types";
 import "./styles/app.css";
 
@@ -35,7 +36,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
-  const [viewMode, setViewMode] = useState<"gantt" | "table" | "impact">("gantt");
+  const [activeTab, setActiveTab] = useState("gantt");
   const editKey = useMemo(() => new URLSearchParams(window.location.search).get("edit_key")?.trim() ?? "", []);
   const canEdit = editKey.length > 0;
 
@@ -65,6 +66,14 @@ export default function App() {
   const requesters = useMemo(() => unique(scheduled.map((item) => item.requester)), [scheduled]);
   const productOwners = useMemo(() => unique(scheduled.map((item) => item.productOwner || item.requester)), [scheduled]);
   const loads = useMemo(() => summarizeOwnerLoads(filtered), [filtered]);
+  const tableNames = useMemo(() => {
+    const names = unique(scheduled.map((item) => item.project || "需求表格"));
+    return names.length > 0 ? names : ["需求表格"];
+  }, [scheduled]);
+  const activeTableRequirements = useMemo(
+    () => filtered.filter((item) => (item.project || "需求表格") === activeTab),
+    [filtered, activeTab]
+  );
 
   async function handleLoad() {
     setLoading(true);
@@ -176,14 +185,15 @@ export default function App() {
     });
   }
 
-  async function handleAddProject() {
+  async function handleAddTable() {
     if (!canEdit) return;
-    const projectName = window.prompt("请输入项目表名称", `新项目 ${new Date().toLocaleDateString("zh-CN")}`)?.trim();
+    const projectName = window.prompt("请输入需求表格名称", `需求表格 ${tableNames.length + 1}`)?.trim();
     if (!projectName) return;
     await handleAddRequirement(projectName);
+    setActiveTab(projectName);
   }
 
-  async function handleAddRequirement(project: string) {
+  async function handleAddRequirement(project: string, sequence?: number) {
     if (!canEdit) return;
     const maxSequence = requirements.reduce((max, item) => Math.max(max, item.sequence), 0);
     const createdAt = new Date().toISOString();
@@ -200,7 +210,7 @@ export default function App() {
       priority: "P2" as const,
       status: "待设计" as const,
       estimateHours: 8,
-      sequence: maxSequence + 1,
+      sequence: sequence ?? maxSequence + 1,
       isRush: false,
       createdAt,
       syncedAt: createdAt,
@@ -227,6 +237,7 @@ export default function App() {
     setRequirements((current) =>
       current.map((item) => (item.project === fromProject ? { ...item, project: toProject, manualOverride: true } : item))
     );
+    setActiveTab(toProject);
     setSyncLabel(`已将 ${fromProject} 改名为 ${toProject}，正在保存`);
 
     void Promise.all(
@@ -242,6 +253,92 @@ export default function App() {
     });
   }
 
+  async function handleInsertRow(target: ScheduledRequirement, position: "above" | "below") {
+    const ordered = requirements.slice().sort((a, b) => a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt));
+    const targetIndex = ordered.findIndex((item) => item.sourceId === target.sourceId);
+    const nextSequence = position === "above" ? Math.max(1, target.sequence - 1) : target.sequence + 1;
+    await handleAddRequirement(target.project || activeTab, nextSequence);
+    if (targetIndex >= 0) {
+      setSyncLabel(position === "above" ? "已向上插入新需求" : "已向下插入新需求");
+    }
+  }
+
+  function handleShareRow(requirement: ScheduledRequirement) {
+    const url = `${window.location.origin}${window.location.pathname}?requirement=${encodeURIComponent(requirement.sourceId)}`;
+    void navigator.clipboard?.writeText(url);
+    setSyncLabel("已复制该需求分享链接");
+  }
+
+  async function handleDeleteRow(requirement: ScheduledRequirement) {
+    if (!canEdit) return;
+    if (!window.confirm(`确定删除「${requirement.name}」吗？`)) return;
+    setRequirements((current) => current.filter((item) => item.sourceId !== requirement.sourceId));
+    const cloudRequirements = await deleteCloudRequirement(requirement.sourceId, editKey);
+    if (cloudRequirements) {
+      setRequirements(cloudRequirements);
+      setSyncLabel("已删除该需求");
+    } else {
+      setError("删除失败：当前链接没有编辑权限或编辑密钥不正确");
+    }
+  }
+
+  async function handleDeleteTable(name: string) {
+    if (!canEdit) return;
+    const rows = requirements.filter((item) => item.project === name);
+    if (!window.confirm(`确定删除「${name}」表格及其 ${rows.length} 条需求吗？`)) return;
+    setRequirements((current) => current.filter((item) => item.project !== name));
+    const results = await Promise.all(rows.map((item) => deleteCloudRequirement(item.sourceId, editKey)));
+    const latest = [...results].reverse().find(Boolean);
+    if (latest) setRequirements(latest);
+    setActiveTab("gantt");
+    setSyncLabel("已删除需求表格");
+  }
+
+  function handleExportTable(name: string) {
+    const rows = requirements.filter((item) => item.project === name);
+    const header = ["name", "project", "owner", "productOwner", "status", "priority", "estimateHours", "dueDate", "note"];
+    const csv = [header.join(","), ...rows.map((row) => header.map((key) => csvCell(String(row[key as keyof DesignRequirement] ?? ""))).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${name}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportTable(name: string) {
+    if (!canEdit) return;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,text/csv";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const [, ...rows] = lines;
+      for (const row of rows) {
+        const [nameCell, , owner, productOwner, status, priority, estimateHours, dueDate, note] = row.split(",").map((cell) => cell.replace(/^"|"$/g, ""));
+        await createManualRequirement({
+          name: nameCell || "导入需求",
+          project: name,
+          owner,
+          productOwner,
+          requester: productOwner,
+          status: (status || "待设计") as DesignRequirement["status"],
+          priority: (priority || "P2") as DesignRequirement["priority"],
+          estimateHours: Number(estimateHours || 8),
+          dueDate,
+          note
+        }, editKey);
+      }
+      await handleLoad();
+      setSyncLabel(`已导入 ${name}`);
+    };
+    input.click();
+  }
+
   const totalHours = filtered.reduce((sum, item) => sum + item.estimateHours, 0);
   const blockedCount = filtered.filter((item) => item.status === "阻塞").length;
   const overloadCount = filtered.filter((item) => item.overCapacity).length;
@@ -250,18 +347,28 @@ export default function App() {
     <main className="app-shell">
       <Toolbar
         filters={filters}
-        viewMode={viewMode}
         owners={owners}
         requesters={requesters}
         syncLabel={syncLabel}
         loading={loading}
         canEdit={canEdit}
         onChange={setFilters}
-        onViewModeChange={setViewMode}
         onSync={handleSync}
         onReschedule={() => {
           if (canEdit) setScheduleSeed(todayIso());
         }}
+      />
+
+      <ViewTabs
+        activeTab={activeTab}
+        tableNames={tableNames}
+        canEdit={canEdit}
+        onSelect={setActiveTab}
+        onAddTable={handleAddTable}
+        onRenameTable={handleRenameProject}
+        onDeleteTable={handleDeleteTable}
+        onImportTable={handleImportTable}
+        onExportTable={handleExportTable}
       />
 
       {error && (
@@ -279,7 +386,7 @@ export default function App() {
         <div><strong>{overloadCount}</strong><span>超载</span></div>
       </section>
 
-      {viewMode === "gantt" && (
+      {activeTab === "gantt" && (
         <section className="board-shell">
           <SummaryRail loads={loads} />
           <GanttBoard
@@ -292,39 +399,33 @@ export default function App() {
         </section>
       )}
 
-      {viewMode === "table" && (
-        <ProjectTables
-          requirements={filtered}
+      {activeTab !== "gantt" && (
+        <section className="single-table-shell">
+          <div className="table-command-bar">
+            <button className="primary-button" onClick={() => handleAddRequirement(activeTab)} disabled={!canEdit}>+ 添加记录</button>
+          </div>
+          <RequirementTable
+          requirements={activeTableRequirements}
           designOwners={owners}
           productOwners={productOwners}
           canEdit={canEdit}
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
           onReorder={handleReorderRequirements}
-          onRenameProject={handleRenameProject}
-          onAddRequirement={handleAddRequirement}
-          onAddProject={handleAddProject}
-        />
-      )}
-
-      {viewMode === "impact" && (
-        <ProjectTables
-          requirements={filtered.filter((item) => item.isRush || item.delayedDays > 0)}
-          designOwners={owners}
-          productOwners={productOwners}
-          canEdit={canEdit}
-          onSelect={setSelected}
-          onUpdate={handleUpdateRequirement}
-          onReorder={handleReorderRequirements}
-          onRenameProject={handleRenameProject}
-          onAddRequirement={handleAddRequirement}
-          onAddProject={handleAddProject}
-        />
+          onInsertRow={handleInsertRow}
+          onShareRow={handleShareRow}
+          onDeleteRow={handleDeleteRow}
+          />
+        </section>
       )}
 
       <RequirementDrawer requirement={selected} canEdit={canEdit} onClose={() => setSelected(null)} onUpdate={handleUpdateRequirement} />
     </main>
   );
+}
+
+function csvCell(value: string): string {
+  return `"${value.replace(/"/g, "\"\"")}"`;
 }
 
 function mergeRequirements(current: DesignRequirement[], incoming: DesignRequirement[]): DesignRequirement[] {

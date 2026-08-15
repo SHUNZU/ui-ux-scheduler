@@ -37,6 +37,166 @@ textarea {
   background: #ffffff;
 }
 
+.view-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  margin-top: 12px;
+  padding: 0 14px;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px 8px 0 0;
+  background: #f6f7f9;
+}
+
+.view-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  padding: 0 12px;
+  color: #526078;
+  background: transparent;
+}
+
+.view-tab.active {
+  color: #172033;
+  background: #ffffff;
+  box-shadow: 0 -1px 0 #ffffff, 0 1px 0 #ffffff;
+}
+
+.view-tab svg {
+  color: #657188;
+}
+
+.view-tab.active svg {
+  color: #176bff;
+}
+
+.tab-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 8px;
+  background: #cfd8e6;
+}
+
+.tab-name,
+.tab-more,
+.add-tab-button {
+  border: 0;
+  background: transparent;
+}
+
+.tab-name {
+  max-width: 160px;
+  padding: 0;
+  overflow: hidden;
+  color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.tab-name-input {
+  width: 130px;
+  height: 28px;
+  border: 1px solid #176bff;
+  border-radius: 6px;
+  padding: 0 8px;
+  outline: none;
+}
+
+.tab-more,
+.add-tab-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #657188;
+  cursor: pointer;
+}
+
+.tab-more:hover,
+.add-tab-button:hover {
+  color: #176bff;
+  background: #edf4ff;
+}
+
+.tab-more:disabled,
+.add-tab-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.tab-menu,
+.row-context-menu {
+  position: fixed;
+  z-index: 30;
+  display: grid;
+  min-width: 150px;
+  padding: 6px;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+}
+
+.tab-menu {
+  position: absolute;
+  top: 38px;
+  right: 4px;
+}
+
+.tab-menu button,
+.row-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #26344d;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tab-menu button:hover,
+.row-context-menu button:hover {
+  background: #f5f7fb;
+}
+
+.tab-menu button.danger,
+.row-context-menu button.danger {
+  color: #b42318;
+}
+
+.single-table-shell {
+  border: 1px solid #dfe5ef;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: #ffffff;
+}
+
+.table-command-bar {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.single-table-shell .table-wrap {
+  border: 0;
+  border-radius: 0;
+}
+
 .toolbar-title h1 {
   margin: 3px 0 0;
   font-size: 24px;

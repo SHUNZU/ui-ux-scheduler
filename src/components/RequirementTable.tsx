@@ -11,6 +11,9 @@ interface RequirementTableProps {
   onSelect: (requirement: ScheduledRequirement) => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
   onReorder: (requirements: ScheduledRequirement[]) => void;
+  onInsertRow?: (requirement: ScheduledRequirement, position: "above" | "below") => void;
+  onShareRow?: (requirement: ScheduledRequirement) => void;
+  onDeleteRow?: (requirement: ScheduledRequirement) => void;
 }
 
 export function RequirementTable({
@@ -20,10 +23,14 @@ export function RequirementTable({
   canEdit,
   onSelect,
   onUpdate,
-  onReorder
+  onReorder,
+  onInsertRow,
+  onShareRow,
+  onDeleteRow
 }: RequirementTableProps) {
   const [draggingId, setDraggingId] = useState("");
   const [dropTargetId, setDropTargetId] = useState("");
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ScheduledRequirement } | null>(null);
 
   const patch = (item: ScheduledRequirement, partial: Partial<ScheduledRequirement>) => {
     if (!canEdit) return;
@@ -50,7 +57,7 @@ export function RequirementTable({
   };
 
   return (
-    <section className="table-wrap">
+    <section className="table-wrap" onClick={() => setContextMenu(null)}>
       <table className="data-table">
         <thead>
           <tr>
@@ -78,6 +85,10 @@ export function RequirementTable({
                 dropTargetId === item.sourceId ? "drop-target-row" : ""
               ].filter(Boolean).join(" ")}
               onClick={() => onSelect(item)}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                setContextMenu({ x: event.clientX, y: event.clientY, item });
+              }}
               onDragOver={(event) => {
                 if (!canEdit || !draggingId) return;
                 event.preventDefault();
@@ -220,6 +231,14 @@ export function RequirementTable({
           ))}
         </tbody>
       </table>
+      {contextMenu && (
+        <div className="row-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onClick={(event) => event.stopPropagation()}>
+          <button disabled={!canEdit || !onInsertRow} onClick={() => { onInsertRow?.(contextMenu.item, "above"); setContextMenu(null); }}>向上插入行</button>
+          <button disabled={!canEdit || !onInsertRow} onClick={() => { onInsertRow?.(contextMenu.item, "below"); setContextMenu(null); }}>向下插入行</button>
+          <button disabled={!onShareRow} onClick={() => { onShareRow?.(contextMenu.item); setContextMenu(null); }}>分享该数据</button>
+          <button className="danger" disabled={!canEdit || !onDeleteRow} onClick={() => { onDeleteRow?.(contextMenu.item); setContextMenu(null); }}>删除该数据</button>
+        </div>
+      )}
     </section>
   );
 }
