@@ -186,10 +186,21 @@ function normalizeDate(value) {
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
   const timestamp = Number(value);
   if (!Number.isNaN(timestamp) && timestamp > 0) {
-    return new Date(timestamp > 100000000000 ? timestamp : timestamp * 1000).toISOString().slice(0, 10);
+    return formatDateInTimeZone(new Date(timestamp > 100000000000 ? timestamp : timestamp * 1000), "Asia/Shanghai");
   }
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString().slice(0, 10);
+  return Number.isNaN(parsed.getTime()) ? undefined : formatDateInTimeZone(parsed, "Asia/Shanghai");
+}
+
+function formatDateInTimeZone(date, timeZone) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const get = (type) => parts.find((part) => part.type === type)?.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 function normalizeDateTime(value) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { addDays, format, parseISO } from "date-fns";
+import { addDays } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { GanttBoard } from "./components/GanttBoard";
 import { RequirementDrawer } from "./components/RequirementDrawer";
@@ -20,8 +20,8 @@ const initialFilters: Filters = {
   owner: "",
   status: "",
   priority: "",
-  startDate: todayIso(),
-  endDate: toIsoDate(addDays(new Date(), 14)),
+  startDate: "",
+  endDate: "",
   overloadedOnly: false,
   blockedOnly: false,
   rushOnly: false,
@@ -67,6 +67,30 @@ export default function App() {
   const requesters = useMemo(() => unique(scheduled.map((item) => item.requester)), [scheduled]);
   const productOwners = useMemo(() => unique(scheduled.map((item) => item.productOwner || item.requester)), [scheduled]);
   const loads = useMemo(() => summarizeOwnerLoads(filtered), [filtered]);
+  const ganttRange = useMemo(() => {
+    if (filters.startDate || filters.endDate) {
+      const fallbackStart = todayIso();
+      const fallbackEnd = toIsoDate(addDays(new Date(), 30));
+      return {
+        start: filters.startDate || fallbackStart,
+        end: filters.endDate || fallbackEnd
+      };
+    }
+
+    if (filtered.length === 0) {
+      return {
+        start: todayIso(),
+        end: toIsoDate(addDays(new Date(), 30))
+      };
+    }
+
+    const starts = filtered.map((item) => item.scheduledStart).filter(Boolean).sort();
+    const ends = filtered.map((item) => item.scheduledEnd).filter(Boolean).sort();
+    return {
+      start: starts[0] || todayIso(),
+      end: ends[ends.length - 1] || toIsoDate(addDays(new Date(), 30))
+    };
+  }, [filtered, filters.startDate, filters.endDate]);
   const tableNames = useMemo(() => {
     const firstSequenceByProject = new Map<string, number>();
     for (const item of scheduled) {
@@ -424,8 +448,8 @@ export default function App() {
           <GanttBoard
             requirements={filtered}
             owners={visibleOwners.length > 0 ? visibleOwners : [UNASSIGNED_OWNER]}
-            rangeStart={filters.startDate || todayIso()}
-            rangeEnd={filters.endDate || format(parseISO(todayIso()), "yyyy-MM-dd")}
+            rangeStart={ganttRange.start}
+            rangeEnd={ganttRange.end}
             scale={ganttScale}
             canEdit={canEdit}
             onScaleChange={setGanttScale}
