@@ -33,6 +33,10 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
         </div>
 
         <div className="form-grid">
+          <label className="wide-label">
+            需求名称
+            <input value={requirement.name} disabled={!canEdit} onChange={(event) => patch({ name: event.target.value })} />
+          </label>
           <label>
             设计负责人
             <input value={requirement.owner} disabled={!canEdit} onChange={(event) => patch({ owner: event.target.value })} />

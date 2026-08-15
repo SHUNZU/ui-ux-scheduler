@@ -1028,6 +1028,10 @@ textarea {
   font-weight: 700;
 }
 
+.wide-label {
+  grid-column: span 2;
+}
+
 .form-grid input,
 .form-grid select,
 .stacked-label textarea {

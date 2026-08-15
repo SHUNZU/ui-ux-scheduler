@@ -441,16 +441,17 @@ export default function App() {
             <button className="primary-button" onClick={() => handleAddRequirement(activeTab)} disabled={!canEdit}>+ 添加记录</button>
           </div>
           <RequirementTable
-          requirements={activeTableRequirements}
-          designOwners={owners}
-          productOwners={productOwners}
-          canEdit={canEdit}
-          onSelect={setSelected}
-          onUpdate={handleUpdateRequirement}
-          onReorder={handleReorderRequirements}
-          onInsertRow={handleInsertRow}
-          onShareRow={handleShareRow}
-          onDeleteRow={handleDeleteRow}
+            requirements={activeTableRequirements}
+            designOwners={owners}
+            productOwners={productOwners}
+            canEdit={canEdit}
+            onSelect={setSelected}
+            onUpdate={handleUpdateRequirement}
+            onReorder={handleReorderRequirements}
+            onEditRow={setSelected}
+            onInsertRow={handleInsertRow}
+            onShareRow={handleShareRow}
+            onDeleteRow={handleDeleteRow}
           />
         </section>
       )}
