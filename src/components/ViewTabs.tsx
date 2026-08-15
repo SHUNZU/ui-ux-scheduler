@@ -8,6 +8,7 @@ interface ViewTabsProps {
   onSelect: (tab: string) => void;
   onAddTable: () => void;
   onRenameTable: (fromName: string, toName: string) => void;
+  onReorderTables: (tableNames: string[]) => void;
   onDeleteTable: (name: string) => void;
   onImportTable: (name: string) => void;
   onExportTable: (name: string) => void;
@@ -20,6 +21,7 @@ export function ViewTabs({
   onSelect,
   onAddTable,
   onRenameTable,
+  onReorderTables,
   onDeleteTable,
   onImportTable,
   onExportTable
@@ -27,6 +29,7 @@ export function ViewTabs({
   const [editing, setEditing] = useState("");
   const [draft, setDraft] = useState("");
   const [menu, setMenu] = useState("");
+  const [dragging, setDragging] = useState("");
 
   const submitRename = () => {
     const next = draft.trim();
@@ -43,7 +46,30 @@ export function ViewTabs({
       </button>
       <span className="tab-divider" />
       {tableNames.map((name) => (
-        <div className={`view-tab table-tab ${activeTab === name ? "active" : ""}`} key={name} onClick={() => onSelect(name)}>
+        <div
+          className={`view-tab table-tab ${activeTab === name ? "active" : ""} ${dragging === name ? "dragging-tab" : ""}`}
+          key={name}
+          draggable={canEdit}
+          onClick={() => onSelect(name)}
+          onDragStart={() => setDragging(name)}
+          onDragEnd={() => setDragging("")}
+          onDragOver={(event) => {
+            if (!dragging || dragging === name) return;
+            event.preventDefault();
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (!dragging || dragging === name) return;
+            const next = [...tableNames];
+            const from = next.indexOf(dragging);
+            const to = next.indexOf(name);
+            if (from < 0 || to < 0) return;
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            onReorderTables(next);
+            setDragging("");
+          }}
+        >
           <Table2 size={18} />
           {editing === name ? (
             <input

@@ -133,6 +133,10 @@ textarea {
   opacity: 0.42;
 }
 
+.dragging-tab {
+  opacity: 0.55;
+}
+
 .tab-menu,
 .row-context-menu {
   position: fixed;
@@ -519,7 +523,38 @@ textarea {
 }
 
 .gantt-wrap {
+  position: relative;
   overflow: auto;
+}
+
+.gantt-view-switch {
+  position: sticky;
+  top: 8px;
+  left: calc(100% - 132px);
+  z-index: 5;
+  display: inline-flex;
+  height: 34px;
+  margin: 8px 12px -42px auto;
+  padding: 3px;
+  border: 1px solid #d7dfeb;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+.gantt-view-switch button {
+  min-width: 48px;
+  border: 0;
+  border-radius: 4px;
+  color: #526078;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gantt-view-switch button.active {
+  color: #176bff;
+  background: #eaf2ff;
+  font-weight: 800;
 }
 
 .timeline {
@@ -581,10 +616,42 @@ textarea {
   cursor: pointer;
 }
 
+.task-bar[draggable="true"] {
+  cursor: grab;
+}
+
+.task-bar[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 .task-bar span {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.task-bar .task-resize {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  width: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  opacity: 0;
+}
+
+.task-bar:hover .task-resize {
+  opacity: 1;
+}
+
+.task-resize.left {
+  left: 3px;
+  cursor: ew-resize;
+}
+
+.task-resize.right {
+  right: 3px;
+  cursor: ew-resize;
 }
 
 .task-bar strong,

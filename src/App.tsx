@@ -37,6 +37,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
   const [activeTab, setActiveTab] = useState("gantt");
+  const [ganttScale, setGanttScale] = useState<"week" | "quarter">("week");
   const editKey = useMemo(() => new URLSearchParams(window.location.search).get("edit_key")?.trim() ?? "", []);
   const canEdit = editKey.length > 0;
 
@@ -67,7 +68,14 @@ export default function App() {
   const productOwners = useMemo(() => unique(scheduled.map((item) => item.productOwner || item.requester)), [scheduled]);
   const loads = useMemo(() => summarizeOwnerLoads(filtered), [filtered]);
   const tableNames = useMemo(() => {
-    const names = unique(scheduled.map((item) => item.project || "需求表格"));
+    const firstSequenceByProject = new Map<string, number>();
+    for (const item of scheduled) {
+      const project = item.project || "需求表格";
+      firstSequenceByProject.set(project, Math.min(firstSequenceByProject.get(project) ?? Number.MAX_SAFE_INTEGER, item.sequence));
+    }
+    const names = [...firstSequenceByProject.entries()]
+      .sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0], "zh-CN"))
+      .map(([name]) => name);
     return names.length > 0 ? names : ["需求表格"];
   }, [scheduled]);
   const activeTableRequirements = useMemo(
@@ -110,6 +118,7 @@ export default function App() {
   function handleUpdateRequirement(updated: ScheduledRequirement) {
     if (!canEdit) return;
     const patch: Partial<DesignRequirement> = {
+      name: updated.name,
       owner: updated.owner,
       productOwner: updated.productOwner,
       requester: updated.requester,
@@ -253,6 +262,28 @@ export default function App() {
     });
   }
 
+  function handleReorderTables(nextNames: string[]) {
+    if (!canEdit) return;
+    const orderedRows = nextNames.flatMap((name) =>
+      requirements
+        .filter((item) => (item.project || "需求表格") === name)
+        .sort((a, b) => a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt))
+    );
+    const patches = orderedRows.map((item, index) => ({ sourceId: item.sourceId, sequence: index + 1 }));
+    setRequirements((current) =>
+      current.map((item) => {
+        const patch = patches.find((next) => next.sourceId === item.sourceId);
+        return patch ? { ...item, sequence: patch.sequence, manualOverride: true } : item;
+      })
+    );
+    void Promise.all(patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, editKey)))
+      .then((results) => {
+        const latest = [...results].reverse().find(Boolean);
+        if (latest) setRequirements(latest);
+        setSyncLabel("已保存表格顺序");
+      });
+  }
+
   async function handleInsertRow(target: ScheduledRequirement, position: "above" | "below") {
     const ordered = requirements.slice().sort((a, b) => a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt));
     const targetIndex = ordered.findIndex((item) => item.sourceId === target.sourceId);
@@ -366,6 +397,7 @@ export default function App() {
         onSelect={setActiveTab}
         onAddTable={handleAddTable}
         onRenameTable={handleRenameProject}
+        onReorderTables={handleReorderTables}
         onDeleteTable={handleDeleteTable}
         onImportTable={handleImportTable}
         onExportTable={handleExportTable}
@@ -394,7 +426,11 @@ export default function App() {
             owners={visibleOwners.length > 0 ? visibleOwners : [UNASSIGNED_OWNER]}
             rangeStart={filters.startDate || todayIso()}
             rangeEnd={filters.endDate || format(parseISO(todayIso()), "yyyy-MM-dd")}
+            scale={ganttScale}
+            canEdit={canEdit}
+            onScaleChange={setGanttScale}
             onSelect={setSelected}
+            onUpdate={handleUpdateRequirement}
           />
         </section>
       )}
