@@ -68,30 +68,43 @@ async function fetchBitableSource(source, token) {
 function mapBitableRecord(source, record) {
   const fields = record.fields || {};
   const map = source.fieldMap || {};
-  const get = (key, fallback = "") => readField(fields[map[key] || key], fallback);
-  const title = get("title") || get("需求名称") || record.record_id;
+  const get = (key, fallback = "", aliases = []) => {
+    const candidates = [map[key], key, ...aliases].filter(Boolean);
+    for (const candidate of candidates) {
+      const value = readField(fields[candidate]);
+      if (value) return value;
+    }
+    return fallback;
+  };
+  const title = get("title", "", ["需求", "需求名称", "需求名", "名称", "标题"]) || record.record_id;
+  const project = get("project", "", ["项目", "项目名称", "所属项目"]) || "未归属项目";
+  const productOwner = get("productOwner", "", ["产品人员", "产品负责人", "产品", "需求负责人"]);
+  const designOwner = get("designOwner", "", ["设计人员", "设计负责人", "当前负责人", "负责人", "owner"]);
+  const startDate = normalizeDate(get("startDate", "", ["开始时间", "开始日期", "排期开始"]));
+  const dueDate = normalizeDate(get("dueDate", "", ["截止时间", "截止日期", "结束时间", "结束日期", "排期结束"]));
 
   return {
     id: `${source.name || source.tableId}:${record.record_id}`,
     title,
-    project: get("project") || source.name || "未归属项目",
-    url: get("url") || buildRecordUrl(source, record.record_id),
-    creator: get("creator") || get("productOwner") || "未填写",
-    productOwner: get("productOwner") || get("creator"),
-    assignee: get("assignee"),
-    designOwner: get("designOwner") || get("owner"),
-    priority: get("priority") || "P2",
-    status: get("status") || "待设计",
-    estimateHours: Number(get("estimateHours", 8)) || 8,
-    dueDate: normalizeDate(get("dueDate")),
-    createdAt: normalizeDateTime(get("createdAt")) || new Date().toISOString(),
-    labels: splitLabels(get("labels")),
-    type: get("type") || "UI",
-    sequence: Number(get("sequence", 999)) || 999,
-    isRush: isTruthy(get("isRush")),
-    rushReason: get("rushReason"),
-    originalStartDate: normalizeDate(get("originalStartDate")),
-    originalEndDate: normalizeDate(get("originalEndDate"))
+    project,
+    url: get("url", "", ["需求链接", "链接"]) || buildRecordUrl(source, record.record_id),
+    creator: get("creator", productOwner || "未填写", ["提出人", "创建人", "产品负责人"]),
+    productOwner: productOwner || get("creator", "", ["提出人", "创建人"]),
+    assignee: designOwner,
+    designOwner,
+    priority: get("priority", "P2", ["优先级"]),
+    status: get("status", "待设计", ["状态"]),
+    estimateHours: Number(get("estimateHours", 8, ["预估工时", "工时", "设计工时"])) || 8,
+    startDate,
+    dueDate,
+    createdAt: normalizeDateTime(get("createdAt", "", ["创建时间", "创建日期"])) || new Date().toISOString(),
+    labels: splitLabels(get("labels", "", ["标签"])),
+    type: get("type", "UI", ["类型", "需求类型"]) || "UI",
+    sequence: Number(get("sequence", 999, ["排序", "顺序"])) || 999,
+    isRush: isTruthy(get("isRush", "", ["是否插单", "插单"])),
+    rushReason: get("rushReason", "", ["插单原因"]),
+    originalStartDate: normalizeDate(get("originalStartDate", "", ["原排期开始"])) || startDate,
+    originalEndDate: normalizeDate(get("originalEndDate", "", ["原排期结束"])) || dueDate
   };
 }
 
@@ -101,6 +114,7 @@ function readField(value, fallback = "") {
     return value.map((item) => readField(item)).filter(Boolean).join("、");
   }
   if (typeof value === "object") {
+    if (Object.prototype.hasOwnProperty.call(value, "value")) return readField(value.value, fallback);
     return value.name || value.text || value.en_name || value.email || value.id || JSON.stringify(value);
   }
   return String(value);

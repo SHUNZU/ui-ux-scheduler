@@ -46,6 +46,7 @@ export interface ProjectWorkItem {
   priority?: string;
   status?: string;
   estimateHours?: number;
+  startDate?: string;
   dueDate?: string;
   createdAt: string;
   labels?: string[];
@@ -54,6 +55,8 @@ export interface ProjectWorkItem {
   sequence?: number;
   isRush?: boolean;
   rushReason?: string;
+  originalStartDate?: string;
+  originalEndDate?: string;
 }
 
 export interface ScheduledRequirement extends DesignRequirement {

@@ -33,8 +33,9 @@ export function normalizeWorkItem(item: ProjectWorkItem, syncedAt = new Date().t
     sequence: item.sequence ?? 999,
     isRush: Boolean(item.isRush),
     rushReason: item.rushReason,
+    startDate: item.startDate,
     dueDate: item.dueDate,
-    originalStartDate: item.dueDate,
+    originalStartDate: item.originalStartDate ?? item.startDate ?? item.dueDate,
     originalEndDate: item.dueDate,
     syncedAt,
     createdAt: item.createdAt
