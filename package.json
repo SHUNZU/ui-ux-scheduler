@@ -6,7 +6,6 @@
   "scripts": {
     "start": "webpack serve --mode development --host 127.0.0.1",
     "build": "webpack --mode production",
-    "vercel-build": "npm run build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
