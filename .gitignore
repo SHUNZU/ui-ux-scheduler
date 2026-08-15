@@ -6,3 +6,5 @@ dist/
 .DS_Store
 .playwright-cli/
 npm-debug.log*
+.vercel
+.env*
