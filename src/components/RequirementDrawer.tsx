@@ -1,5 +1,6 @@
 import { ExternalLink, X } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
+import { todayIso } from "../lib/date";
 import { ScheduledRequirement } from "../types";
 
 interface RequirementDrawerProps {
@@ -11,6 +12,13 @@ interface RequirementDrawerProps {
 
 export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: RequirementDrawerProps) {
   if (!requirement) return null;
+  const today = todayIso();
+  const isOverdue = Boolean(requirement.dueDate && requirement.dueDate < today && requirement.status !== "已完成");
+  const scheduleImpact = isOverdue
+    ? `逾期${requirement.delayedDays > 0 ? ` ${requirement.delayedDays} 个工作日` : ""}`
+    : requirement.delayedDays > 0
+      ? `顺延 ${requirement.delayedDays} 个工作日，${requirement.delayReason}`
+      : "无影响";
 
   const patch = (partial: Partial<ScheduledRequirement>) => {
     if (!canEdit) return;
@@ -124,7 +132,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
           <div><dt>所属项目</dt><dd>{requirement.project}</dd></div>
           <div><dt>来源 ID</dt><dd>{requirement.sourceId}</dd></div>
           <div><dt>自动排期</dt><dd>{requirement.scheduledStart} 至 {requirement.scheduledEnd}</dd></div>
-          <div><dt>延期影响</dt><dd>{requirement.delayedDays > 0 ? `${requirement.delayedDays} 个工作日，${requirement.delayReason}` : "无延期"}</dd></div>
+          <div><dt>排期影响</dt><dd>{scheduleImpact}</dd></div>
           <div><dt>同步时间</dt><dd>{requirement.syncedAt ? new Date(requirement.syncedAt).toLocaleString() : "本地数据"}</dd></div>
         </dl>
       </aside>

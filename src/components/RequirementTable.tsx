@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowUpRight, Flame, GripVertical, Link as LinkIcon, UserRound } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_COLORS, STATUS_OPTIONS } from "../lib/constants";
+import { todayIso } from "../lib/date";
 import { RequirementPriority, RequirementStatus, ScheduledRequirement } from "../types";
 
 interface RequirementTableProps {
@@ -33,6 +34,7 @@ export function RequirementTable({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ScheduledRequirement } | null>(null);
   const [editingNameId, setEditingNameId] = useState("");
   const [draftName, setDraftName] = useState("");
+  const today = todayIso();
 
   const patch = (item: ScheduledRequirement, partial: Partial<ScheduledRequirement>) => {
     if (!canEdit) return;
@@ -258,10 +260,15 @@ export function RequirementTable({
               </td>
               <td>{item.scheduledStart} 至 {item.scheduledEnd}</td>
               <td>
-                {item.delayedDays > 0 ? (
-                  <span className="delay-tag">
+                {item.dueDate && item.dueDate < today && item.status !== "已完成" ? (
+                  <span className="delay-tag overdue-tag">
                     <ArrowUpRight size={13} />
-                    {item.delayedDays} 工作日
+                    逾期 {item.delayedDays > 0 ? `${item.delayedDays} 工作日` : ""}
+                  </span>
+                ) : item.delayedDays > 0 ? (
+                  <span className="delay-tag deferred-tag">
+                    <ArrowUpRight size={13} />
+                    顺延 {item.delayedDays} 工作日
                   </span>
                 ) : "无"}
               </td>
