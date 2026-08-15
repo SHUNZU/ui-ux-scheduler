@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { eachDay, toIsoDate } from "../lib/date";
 import { STATUS_COLORS } from "../lib/constants";
@@ -9,21 +9,25 @@ interface GanttBoardProps {
   owners: string[];
   rangeStart: string;
   rangeEnd: string;
-  scale: "week" | "quarter";
+  scale: GanttScale;
   canEdit: boolean;
-  onScaleChange: (scale: "week" | "quarter") => void;
+  onScaleChange: (scale: GanttScale) => void;
   onSelect: (requirement: ScheduledRequirement) => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
 }
 
+type GanttScale = "week" | "month" | "quarter";
+
 const SCALE_WIDTH = {
   week: 128,
+  month: 64,
   quarter: 34
 };
 const ROW_HEIGHT = 86;
 
 export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, canEdit, onScaleChange, onSelect, onUpdate }: GanttBoardProps) {
-  const [dragStartX, setDragStartX] = useState(0);
+  const [activeGestureId, setActiveGestureId] = useState("");
+  const gestureRef = useRef<{ item: ScheduledRequirement; mode: "move" | "start" | "end"; startX: number } | null>(null);
   const days = eachDay(rangeStart, rangeEnd);
   const dayWidth = SCALE_WIDTH[scale];
 
@@ -52,17 +56,41 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
     });
   };
 
+  const startGesture = (event: ReactPointerEvent, item: ScheduledRequirement, mode: "move" | "start" | "end") => {
+    if (!canEdit) return;
+    event.preventDefault();
+    event.stopPropagation();
+    gestureRef.current = { item, mode, startX: event.clientX };
+    setActiveGestureId(item.sourceId);
+
+    const handlePointerUp = (upEvent: PointerEvent) => {
+      const gesture = gestureRef.current;
+      gestureRef.current = null;
+      setActiveGestureId("");
+      window.removeEventListener("pointerup", handlePointerUp);
+      if (!gesture) return;
+
+      const deltaDays = Math.round((upEvent.clientX - gesture.startX) / dayWidth);
+      if (gesture.mode === "move") updateByDelta(gesture.item, deltaDays);
+      if (gesture.mode === "start") resize(gesture.item, "start", deltaDays);
+      if (gesture.mode === "end") resize(gesture.item, "end", deltaDays);
+    };
+
+    window.addEventListener("pointerup", handlePointerUp);
+  };
+
   return (
     <section className="gantt-wrap">
       <div className="gantt-view-switch">
         <button className={scale === "week" ? "active" : ""} onClick={() => onScaleChange("week")}>周</button>
+        <button className={scale === "month" ? "active" : ""} onClick={() => onScaleChange("month")}>月</button>
         <button className={scale === "quarter" ? "active" : ""} onClick={() => onScaleChange("quarter")}>季</button>
       </div>
       <div className="timeline" style={{ gridTemplateColumns: `repeat(${days.length}, ${dayWidth}px)` }}>
         {days.map((day) => (
           <div className="timeline-day" key={day}>
-            <span>{scale === "week" ? format(parseISO(day), "MM/dd") : format(parseISO(day), "M/d")}</span>
-            {scale === "week" && <small>{format(parseISO(day), "EEE")}</small>}
+            <span>{scale === "week" ? format(parseISO(day), "MM/dd") : format(parseISO(day), "d")}</span>
+            {scale !== "quarter" && <small>{scale === "week" ? format(parseISO(day), "EEE") : format(parseISO(day), "MMM")}</small>}
           </div>
         ))}
       </div>
@@ -81,7 +109,7 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
                 return (
                   <button
                     key={item.id}
-                    className={`task-bar ${item.overCapacity ? "is-over" : ""} ${item.unassigned ? "is-unassigned" : ""}`}
+                    className={`task-bar ${item.overCapacity ? "is-over" : ""} ${item.unassigned ? "is-unassigned" : ""} ${activeGestureId === item.sourceId ? "is-moving" : ""}`}
                     style={{
                       left: startIndex * dayWidth + 7,
                       width,
@@ -89,46 +117,19 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
                       top: 16 + Math.min(26, item.offsetHours * 3)
                     }}
                     onClick={() => onSelect(item)}
-                    draggable={canEdit}
-                    onDragStart={(event) => {
-                      setDragStartX(event.clientX);
-                      event.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={(event) => event.preventDefault()}
-                    onDragEnd={(event) => {
-                      const deltaPixels = event.clientX - dragStartX;
-                      const deltaDays = Math.round(deltaPixels / dayWidth);
-                      updateByDelta(item, deltaDays);
-                    }}
+                    onPointerDown={(event) => startGesture(event, item, "move")}
                     title={`${item.name} / ${item.estimateHours}h`}
                   >
                     <span
                       className="task-resize left"
-                      onClick={(event) => event.stopPropagation()}
-                      onPointerDown={(event) => {
-                        const startX = event.clientX;
-                        const onUp = (upEvent: PointerEvent) => {
-                          resize(item, "start", Math.round((upEvent.clientX - startX) / dayWidth));
-                          window.removeEventListener("pointerup", onUp);
-                        };
-                        window.addEventListener("pointerup", onUp);
-                      }}
+                      onPointerDown={(event) => startGesture(event, item, "start")}
                     />
                     <strong>{item.priority}</strong>
                     <span>{item.name}</span>
                     <small>{item.estimateHours}h</small>
                     <span
                       className="task-resize right"
-                      onClick={(event) => event.stopPropagation()}
-                      onPointerDown={(event) => {
-                        const startX = event.clientX;
-                        const onUp = (upEvent: PointerEvent) => {
-                          resize(item, "end", Math.round((upEvent.clientX - startX) / dayWidth));
-                          window.removeEventListener("pointerup", onUp);
-                        };
-                        window.addEventListener("pointerup", onUp);
-                      }}
+                      onPointerDown={(event) => startGesture(event, item, "end")}
                     />
                   </button>
                 );

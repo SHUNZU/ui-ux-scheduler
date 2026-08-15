@@ -543,7 +543,7 @@ textarea {
 }
 
 .gantt-view-switch button {
-  min-width: 48px;
+  min-width: 42px;
   border: 0;
   border-radius: 4px;
   color: #526078;
@@ -616,12 +616,22 @@ textarea {
   cursor: pointer;
 }
 
-.task-bar[draggable="true"] {
+.task-bar {
+  touch-action: none;
+}
+
+.task-bar:not(.is-moving) {
   cursor: grab;
 }
 
-.task-bar[draggable="true"]:active {
+.task-bar:active,
+.task-bar.is-moving {
   cursor: grabbing;
+}
+
+.task-bar.is-moving {
+  outline: 2px solid rgba(23, 107, 255, 0.35);
+  filter: brightness(1.04);
 }
 
 .task-bar span {

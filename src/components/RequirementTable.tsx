@@ -11,7 +11,6 @@ interface RequirementTableProps {
   onSelect: (requirement: ScheduledRequirement) => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
   onReorder: (requirements: ScheduledRequirement[]) => void;
-  onEditRow?: (requirement: ScheduledRequirement) => void;
   onInsertRow?: (requirement: ScheduledRequirement, position: "above" | "below") => void;
   onShareRow?: (requirement: ScheduledRequirement) => void;
   onDeleteRow?: (requirement: ScheduledRequirement) => void;
@@ -25,7 +24,6 @@ export function RequirementTable({
   onSelect,
   onUpdate,
   onReorder,
-  onEditRow,
   onInsertRow,
   onShareRow,
   onDeleteRow
@@ -276,7 +274,7 @@ export function RequirementTable({
       </table>
       {contextMenu && (
         <div className="row-context-menu" style={{ left: contextMenu.x, top: contextMenu.y }} onClick={(event) => event.stopPropagation()}>
-          <button disabled={!onEditRow} onClick={() => { onEditRow?.(contextMenu.item); setContextMenu(null); }}>编辑</button>
+          <button disabled={!canEdit} onClick={() => { startRename(contextMenu.item); setContextMenu(null); }}>编辑</button>
           <button disabled={!canEdit || !onInsertRow} onClick={() => { onInsertRow?.(contextMenu.item, "above"); setContextMenu(null); }}>向上插入行</button>
           <button disabled={!canEdit || !onInsertRow} onClick={() => { onInsertRow?.(contextMenu.item, "below"); setContextMenu(null); }}>向下插入行</button>
           <button disabled={!onShareRow} onClick={() => { onShareRow?.(contextMenu.item); setContextMenu(null); }}>分享该数据</button>

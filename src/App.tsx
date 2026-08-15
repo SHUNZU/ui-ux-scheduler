@@ -37,7 +37,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
   const [activeTab, setActiveTab] = useState("gantt");
-  const [ganttScale, setGanttScale] = useState<"week" | "quarter">("week");
+  const [ganttScale, setGanttScale] = useState<"week" | "month" | "quarter">("week");
   const editKey = useMemo(() => new URLSearchParams(window.location.search).get("edit_key")?.trim() ?? "", []);
   const canEdit = editKey.length > 0;
 
@@ -448,7 +448,6 @@ export default function App() {
             onSelect={setSelected}
             onUpdate={handleUpdateRequirement}
             onReorder={handleReorderRequirements}
-            onEditRow={setSelected}
             onInsertRow={handleInsertRow}
             onShareRow={handleShareRow}
             onDeleteRow={handleDeleteRow}
