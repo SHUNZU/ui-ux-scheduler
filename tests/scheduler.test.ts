@@ -1,0 +1,87 @@
+import { describe, expect, it } from "vitest";
+import { isDesignWorkItem, normalizeWorkItem } from "../src/lib/normalize";
+import { scheduleRequirements } from "../src/lib/scheduler";
+import { DesignRequirement, ProjectWorkItem } from "../src/types";
+
+const baseRequirement: DesignRequirement = {
+  id: "REQ-1",
+  sourceId: "REQ-1",
+  name: "基础需求",
+  project: "测试项目",
+  sourceUrl: "https://example.com",
+  requester: "产品",
+  productOwner: "产品",
+  owner: "设计A",
+  priority: "P2",
+  status: "待设计",
+  estimateHours: 4,
+  sequence: 999,
+  isRush: false,
+  createdAt: "2026-08-10T00:00:00Z"
+};
+
+describe("design work item filtering", () => {
+  it("keeps work items with design labels or owners", () => {
+    const item: ProjectWorkItem = {
+      id: "REQ-2",
+      title: "结算页优化",
+      url: "https://example.com",
+      creator: "产品",
+      assignee: "设计B",
+      createdAt: "2026-08-10T00:00:00Z",
+      labels: ["UI"]
+    };
+
+    expect(isDesignWorkItem(item)).toBe(true);
+    expect(normalizeWorkItem(item).owner).toBe("设计B");
+  });
+
+  it("ignores non-design engineering tasks", () => {
+    const item: ProjectWorkItem = {
+      id: "REQ-3",
+      title: "数据库索引调整",
+      url: "https://example.com",
+      creator: "产品",
+      assignee: "后端",
+      createdAt: "2026-08-10T00:00:00Z",
+      labels: ["后端"]
+    };
+
+    expect(isDesignWorkItem(item)).toBe(false);
+  });
+});
+
+describe("scheduleRequirements", () => {
+  it("sorts by priority before due date and creation time", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "low", sourceId: "low", priority: "P3", dueDate: "2026-08-14" },
+        { ...baseRequirement, id: "urgent", sourceId: "urgent", priority: "P0", dueDate: "2026-08-20" }
+      ],
+      "2026-08-13"
+    );
+
+    expect(scheduled[0].sourceId).toBe("urgent");
+  });
+
+  it("moves same-owner work to the next available day when daily capacity is full", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "one", sourceId: "one", priority: "P1", estimateHours: 8 },
+        { ...baseRequirement, id: "two", sourceId: "two", priority: "P2", estimateHours: 4 }
+      ],
+      "2026-08-13"
+    );
+
+    expect(scheduled[0].scheduledStart).toBe("2026-08-13");
+    expect(scheduled[1].scheduledStart).toBe("2026-08-14");
+    expect(scheduled[1].overCapacity).toBe(false);
+  });
+
+  it("puts missing owners into the unassigned lane", () => {
+    const scheduled = scheduleRequirements([{ ...baseRequirement, owner: "" }], "2026-08-13");
+
+    expect(scheduled[0].ownerLane).toBe("待分配");
+    expect(scheduled[0].unassigned).toBe(true);
+  });
+});

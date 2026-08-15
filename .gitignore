@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+.vercel/
+.DS_Store
+.playwright-cli/
+npm-debug.log*
