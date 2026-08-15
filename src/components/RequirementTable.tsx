@@ -79,6 +79,7 @@ export function RequirementTable({
         <thead>
           <tr>
             <th className="drag-head"></th>
+            <th className="row-index-head">#</th>
             <th>需求名称</th>
             <th>项目</th>
             <th>设计负责人</th>
@@ -94,7 +95,7 @@ export function RequirementTable({
           </tr>
         </thead>
         <tbody>
-          {requirements.map((item) => (
+          {requirements.map((item, index) => (
             <tr
               key={item.sourceId}
               className={[
@@ -140,6 +141,7 @@ export function RequirementTable({
                   <GripVertical size={15} />
                 </button>
               </td>
+              <td className="row-index-cell">{index + 1}</td>
               <td>
                 <div
                   className="name-cell"

@@ -40,12 +40,65 @@ async function getTenantAccessToken() {
 }
 
 async function fetchBitableSource(source, token) {
-  const records = [];
+  const tables = source.includeAllTables ? await fetchBitableTables(source, token) : [source];
+  const batches = [];
+
+  for (const table of tables) {
+    const tableSource = {
+      ...source,
+      originalTableId: source.tableId,
+      tableId: table.tableId || source.tableId,
+      tableName: table.tableName || source.tableName
+    };
+    batches.push(...await fetchBitableTableRecords(tableSource, token));
+  }
+
+  return batches;
+}
+
+async function fetchBitableTables(source, token) {
+  const tables = [];
   let pageToken = "";
 
   do {
-    const params = new URLSearchParams({ page_size: "100" });
-    if (source.viewId) params.set("view_id", source.viewId);
+    const params = new URLSearchParams();
+    if (pageToken) params.set("page_token", pageToken);
+
+    const query = params.toString();
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${source.appToken}/tables${query ? `?${query}` : ""}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json();
+
+    if (!response.ok || payload.code !== 0) {
+      if (source.tableId) return [source];
+      throw new Error(`Failed to list tables for ${source.name || source.appToken}: ${payload.msg || response.statusText}`);
+    }
+
+    const items = payload.data?.items || [];
+    tables.push(...items.map((item) => ({
+      tableId: item.table_id,
+      tableName: item.name
+    })).filter((item) => item.tableId));
+    pageToken = payload.data?.page_token || payload.data?.next_page_token || "";
+  } while (pageToken);
+
+  if (tables.length === 0 && source.tableId) {
+    return [source];
+  }
+
+  return tables;
+}
+
+async function fetchBitableTableRecords(source, token) {
+  const records = [];
+  let pageToken = "";
+  let hasMore = true;
+
+  do {
+    const params = new URLSearchParams({ page_size: String(source.pageSize || 500) });
+    if (source.viewId && source.useView !== false) params.set("view_id", source.viewId);
     if (pageToken) params.set("page_token", pageToken);
 
     const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${source.appToken}/tables/${source.tableId}/records?${params}`;
@@ -59,8 +112,9 @@ async function fetchBitableSource(source, token) {
     }
 
     records.push(...(payload.data?.items || []));
-    pageToken = payload.data?.page_token || "";
-  } while (pageToken);
+    pageToken = payload.data?.page_token || payload.data?.next_page_token || "";
+    hasMore = Boolean(payload.data?.has_more || pageToken);
+  } while (hasMore && pageToken);
 
   return records.map((record) => mapBitableRecord(source, record));
 }
@@ -77,14 +131,14 @@ function mapBitableRecord(source, record) {
     return fallback;
   };
   const title = get("title", "", ["需求", "需求名称", "需求名", "名称", "标题"]) || record.record_id;
-  const project = get("project", "", ["项目", "项目名称", "所属项目"]) || "未归属项目";
+  const project = get("project", "", ["项目", "项目名称", "所属项目"]) || source.tableName || "未归属项目";
   const productOwner = get("productOwner", "", ["产品人员", "产品负责人", "产品", "需求负责人"]);
   const designOwner = get("designOwner", "", ["设计人员", "设计负责人", "当前负责人", "负责人", "owner"]);
   const startDate = normalizeDate(get("startDate", "", ["开始时间", "开始日期", "排期开始"]));
   const dueDate = normalizeDate(get("dueDate", "", ["截止时间", "截止日期", "结束时间", "结束日期", "排期结束"]));
 
   return {
-    id: `${source.name || source.tableId}:${record.record_id}`,
+    id: buildSourceId(source, record.record_id),
     title,
     project,
     url: get("url", "", ["需求链接", "链接"]) || buildRecordUrl(source, record.record_id),
@@ -106,6 +160,13 @@ function mapBitableRecord(source, record) {
     originalStartDate: normalizeDate(get("originalStartDate", "", ["原排期开始"])) || startDate,
     originalEndDate: normalizeDate(get("originalEndDate", "", ["原排期结束"])) || dueDate
   };
+}
+
+function buildSourceId(source, recordId) {
+  if (!source.includeAllTables || source.tableId === source.originalTableId) {
+    return `${source.name || source.tableId}:${recordId}`;
+  }
+  return `${source.name || source.appToken}:${source.tableId}:${recordId}`;
 }
 
 function readField(value, fallback = "") {

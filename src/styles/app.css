@@ -707,6 +707,14 @@ textarea {
   padding: 5px 4px;
 }
 
+.data-table .row-index-head,
+.data-table .row-index-cell {
+  width: 48px;
+  color: #8a95a8;
+  text-align: center;
+  background: #fbfcff;
+}
+
 .data-table th {
   position: sticky;
   top: 0;
