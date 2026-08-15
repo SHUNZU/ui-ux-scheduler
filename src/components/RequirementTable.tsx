@@ -31,6 +31,8 @@ export function RequirementTable({
   const [draggingId, setDraggingId] = useState("");
   const [dropTargetId, setDropTargetId] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ScheduledRequirement } | null>(null);
+  const [editingNameId, setEditingNameId] = useState("");
+  const [draftName, setDraftName] = useState("");
 
   const patch = (item: ScheduledRequirement, partial: Partial<ScheduledRequirement>) => {
     if (!canEdit) return;
@@ -54,6 +56,21 @@ export function RequirementTable({
     onReorder(next.map((item, index) => ({ ...item, sequence: index + 1, manualOverride: true })));
     setDraggingId("");
     setDropTargetId("");
+  };
+
+  const startRename = (item: ScheduledRequirement) => {
+    if (!canEdit) return;
+    setEditingNameId(item.sourceId);
+    setDraftName(item.name);
+  };
+
+  const submitRename = (item: ScheduledRequirement) => {
+    const nextName = draftName.trim();
+    if (nextName && nextName !== item.name) {
+      patch(item, { name: nextName });
+    }
+    setEditingNameId("");
+    setDraftName("");
   };
 
   return (
@@ -124,9 +141,33 @@ export function RequirementTable({
                 </button>
               </td>
               <td>
-                <div className="name-cell">
+                <div
+                  className="name-cell"
+                  onDoubleClick={(event) => {
+                    event.stopPropagation();
+                    startRename(item);
+                  }}
+                >
                   {item.isRush && <Flame size={14} />}
-                  <span>{item.name}</span>
+                  {editingNameId === item.sourceId ? (
+                    <input
+                      className="name-cell-input"
+                      value={draftName}
+                      autoFocus
+                      onClick={(event) => event.stopPropagation()}
+                      onBlur={() => submitRename(item)}
+                      onChange={(event) => setDraftName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") submitRename(item);
+                        if (event.key === "Escape") {
+                          setEditingNameId("");
+                          setDraftName("");
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span title={canEdit ? "双击修改需求名称" : item.name}>{item.name}</span>
+                  )}
                 </div>
               </td>
               <td>{item.project}</td>

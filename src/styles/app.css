@@ -707,6 +707,17 @@ textarea {
   text-overflow: ellipsis;
 }
 
+.name-cell-input {
+  width: 260px;
+  height: 30px;
+  border: 1px solid #176bff;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: #172033;
+  background: #ffffff;
+  outline: none;
+}
+
 .priority-tag,
 .status-tag,
 .delay-tag {
