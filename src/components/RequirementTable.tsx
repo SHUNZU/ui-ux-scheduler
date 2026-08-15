@@ -6,6 +6,7 @@ interface RequirementTableProps {
   requirements: ScheduledRequirement[];
   designOwners: string[];
   productOwners: string[];
+  canEdit: boolean;
   onSelect: (requirement: ScheduledRequirement) => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
 }
@@ -14,10 +15,12 @@ export function RequirementTable({
   requirements,
   designOwners,
   productOwners,
+  canEdit,
   onSelect,
   onUpdate
 }: RequirementTableProps) {
   const patch = (item: ScheduledRequirement, partial: Partial<ScheduledRequirement>) => {
+    if (!canEdit) return;
     onUpdate({ ...item, ...partial, manualOverride: true });
   };
 
@@ -55,6 +58,7 @@ export function RequirementTable({
                   value={item.owner}
                   fallback={item.ownerLane}
                   options={designOwners}
+                  disabled={!canEdit}
                   onChange={(owner) => patch(item, { owner })}
                 />
               </td>
@@ -63,6 +67,7 @@ export function RequirementTable({
                   value={item.productOwner}
                   fallback={item.requester}
                   options={productOwners}
+                  disabled={!canEdit}
                   onChange={(productOwner) => patch(item, { productOwner, requester: productOwner })}
                 />
               </td>
@@ -70,6 +75,7 @@ export function RequirementTable({
                 <select
                   className={`cell-select priority-cell priority-${item.priority.toLowerCase()}`}
                   value={item.priority}
+                  disabled={!canEdit}
                   onClick={(event) => event.stopPropagation()}
                   onChange={(event) => patch(item, { priority: event.target.value as RequirementPriority })}
                 >
@@ -82,6 +88,7 @@ export function RequirementTable({
                 <select
                   className="cell-select status-cell"
                   value={item.status}
+                  disabled={!canEdit}
                   style={{ color: STATUS_COLORS[item.status], borderColor: STATUS_COLORS[item.status] }}
                   onClick={(event) => event.stopPropagation()}
                   onChange={(event) => patch(item, { status: event.target.value as RequirementStatus })}
@@ -98,6 +105,7 @@ export function RequirementTable({
                   min={1}
                   max={80}
                   value={item.estimateHours}
+                  disabled={!canEdit}
                   onClick={(event) => event.stopPropagation()}
                   onChange={(event) => patch(item, { estimateHours: Number(event.target.value) })}
                 />
@@ -109,6 +117,7 @@ export function RequirementTable({
                   min={0}
                   max={999}
                   value={item.sequence}
+                  disabled={!canEdit}
                   onClick={(event) => event.stopPropagation()}
                   onChange={(event) => patch(item, { sequence: Number(event.target.value) })}
                 />
@@ -116,6 +125,7 @@ export function RequirementTable({
               <td>
                 <button
                   className={`rush-toggle ${item.isRush ? "active" : ""}`}
+                  disabled={!canEdit}
                   onClick={(event) => {
                     event.stopPropagation();
                     patch(item, { isRush: !item.isRush });
@@ -152,11 +162,13 @@ function PersonSelect({
   value,
   fallback,
   options,
+  disabled,
   onChange
 }: {
   value: string;
   fallback: string;
   options: string[];
+  disabled: boolean;
   onChange: (value: string) => void;
 }) {
   const display = value || fallback || "待分配";
@@ -165,7 +177,7 @@ function PersonSelect({
   return (
     <label className="person-cell" onClick={(event) => event.stopPropagation()}>
       <span className="avatar-dot"><UserRound size={13} /></span>
-      <select value={display} onChange={(event) => onChange(event.target.value)}>
+      <select value={display} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
         {selectOptions.map((option) => (
           <option key={option} value={option}>{option}</option>
         ))}

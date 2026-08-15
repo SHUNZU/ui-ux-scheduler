@@ -7,6 +7,10 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  if (!hasEditAccess(req)) {
+    return res.status(401).json({ error: "Edit access required" });
+  }
+
   try {
     const body = await readJson(req);
     if (!body.sourceId) {
@@ -29,6 +33,12 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 };
+
+function hasEditAccess(req) {
+  const editKey = process.env.EDIT_KEY || process.env.SYNC_SECRET;
+  if (!editKey) return false;
+  return req.headers.authorization === `Bearer ${editKey}`;
+}
 
 function readJson(req) {
   return new Promise((resolve, reject) => {

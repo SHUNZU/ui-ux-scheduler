@@ -36,6 +36,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
   const [viewMode, setViewMode] = useState<"gantt" | "table" | "impact">("gantt");
+  const editKey = useMemo(() => new URLSearchParams(window.location.search).get("edit_key")?.trim() ?? "", []);
+  const canEdit = editKey.length > 0;
 
   useEffect(() => {
     void handleLoad();
@@ -81,10 +83,11 @@ export default function App() {
   }
 
   async function handleSync() {
+    if (!canEdit) return;
     setLoading(true);
     setError("");
     try {
-      const result = await triggerProjectSync();
+      const result = await triggerProjectSync(editKey);
       setRequirements(result.requirements);
       setSyncLabel(`已从飞书同步 ${result.requirements.length} 条设计需求，忽略 ${result.ignoredCount} 条非设计需求`);
     } catch (syncError) {
@@ -96,6 +99,7 @@ export default function App() {
   }
 
   function handleUpdateRequirement(updated: ScheduledRequirement) {
+    if (!canEdit) return;
     const patch: Partial<DesignRequirement> = {
       owner: updated.owner,
       productOwner: updated.productOwner,
@@ -124,10 +128,12 @@ export default function App() {
       )
     );
     setSelected(updated);
-    void saveRequirementPatch(updated.sourceId, patch).then((cloudRequirements) => {
+    void saveRequirementPatch(updated.sourceId, patch, editKey).then((cloudRequirements) => {
       if (cloudRequirements) {
         setRequirements(cloudRequirements);
         setSyncLabel("已保存到云端排期");
+      } else {
+        setError("保存失败：当前链接没有编辑权限或编辑密钥不正确");
       }
     });
   }
@@ -145,10 +151,13 @@ export default function App() {
         requesters={requesters}
         syncLabel={syncLabel}
         loading={loading}
+        canEdit={canEdit}
         onChange={setFilters}
         onViewModeChange={setViewMode}
         onSync={handleSync}
-        onReschedule={() => setScheduleSeed(todayIso())}
+        onReschedule={() => {
+          if (canEdit) setScheduleSeed(todayIso());
+        }}
       />
 
       {error && (
@@ -184,6 +193,7 @@ export default function App() {
           requirements={filtered}
           designOwners={owners}
           productOwners={productOwners}
+          canEdit={canEdit}
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
         />
@@ -194,12 +204,13 @@ export default function App() {
           requirements={filtered.filter((item) => item.isRush || item.delayedDays > 0)}
           designOwners={owners}
           productOwners={productOwners}
+          canEdit={canEdit}
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
         />
       )}
 
-      <RequirementDrawer requirement={selected} onClose={() => setSelected(null)} onUpdate={handleUpdateRequirement} />
+      <RequirementDrawer requirement={selected} canEdit={canEdit} onClose={() => setSelected(null)} onUpdate={handleUpdateRequirement} />
     </main>
   );
 }

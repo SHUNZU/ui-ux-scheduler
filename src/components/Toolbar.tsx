@@ -1,4 +1,4 @@
-import { CalendarRange, GanttChartSquare, RefreshCcw, Table2, WandSparkles } from "lucide-react";
+import { CalendarRange, Eye, GanttChartSquare, PencilLine, RefreshCcw, Table2, WandSparkles } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -9,6 +9,7 @@ interface ToolbarProps {
   requesters: string[];
   syncLabel: string;
   loading: boolean;
+  canEdit: boolean;
   onChange: (filters: Filters) => void;
   onViewModeChange: (viewMode: "gantt" | "table" | "impact") => void;
   onSync: () => void;
@@ -22,6 +23,7 @@ export function Toolbar({
   requesters,
   syncLabel,
   loading,
+  canEdit,
   onChange,
   onViewModeChange,
   onSync,
@@ -37,11 +39,15 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-actions">
-        <button className="primary-button" onClick={onSync} disabled={loading} title="重新同步飞书项目需求">
+        <span className={`mode-badge ${canEdit ? "edit" : "readonly"}`}>
+          {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
+          {canEdit ? "编辑模式" : "只读模式"}
+        </span>
+        <button className="primary-button" onClick={onSync} disabled={loading || !canEdit} title={canEdit ? "重新同步飞书项目需求" : "只读模式不可同步"}>
           <RefreshCcw size={16} />
           {loading ? "同步中" : "重新同步"}
         </button>
-        <button className="ghost-button" onClick={onReschedule} title="按优先级重新自动排期">
+        <button className="ghost-button" onClick={onReschedule} disabled={!canEdit} title={canEdit ? "按优先级重新自动排期" : "只读模式不可重新排期"}>
           <WandSparkles size={16} />
           重新排期
         </button>

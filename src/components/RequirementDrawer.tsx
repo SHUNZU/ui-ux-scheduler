@@ -4,14 +4,16 @@ import { ScheduledRequirement } from "../types";
 
 interface RequirementDrawerProps {
   requirement: ScheduledRequirement | null;
+  canEdit: boolean;
   onClose: () => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
 }
 
-export function RequirementDrawer({ requirement, onClose, onUpdate }: RequirementDrawerProps) {
+export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: RequirementDrawerProps) {
   if (!requirement) return null;
 
   const patch = (partial: Partial<ScheduledRequirement>) => {
+    if (!canEdit) return;
     onUpdate({ ...requirement, ...partial, manualOverride: true });
   };
 
@@ -24,6 +26,7 @@ export function RequirementDrawer({ requirement, onClose, onUpdate }: Requiremen
         <div className="drawer-head">
           <span className="priority-pill">{requirement.priority}</span>
           <h2>{requirement.name}</h2>
+          <span className={`drawer-mode ${canEdit ? "edit" : "readonly"}`}>{canEdit ? "可编辑" : "只读"}</span>
           <a href={requirement.sourceUrl} target="_blank" rel="noreferrer">
             打开来源 <ExternalLink size={14} />
           </a>
@@ -32,18 +35,19 @@ export function RequirementDrawer({ requirement, onClose, onUpdate }: Requiremen
         <div className="form-grid">
           <label>
             设计负责人
-            <input value={requirement.owner} onChange={(event) => patch({ owner: event.target.value })} />
+            <input value={requirement.owner} disabled={!canEdit} onChange={(event) => patch({ owner: event.target.value })} />
           </label>
           <label>
             产品负责人
             <input
               value={requirement.productOwner || requirement.requester}
+              disabled={!canEdit}
               onChange={(event) => patch({ productOwner: event.target.value, requester: event.target.value })}
             />
           </label>
           <label>
             状态
-            <select value={requirement.status} onChange={(event) => patch({ status: event.target.value as ScheduledRequirement["status"] })}>
+            <select value={requirement.status} disabled={!canEdit} onChange={(event) => patch({ status: event.target.value as ScheduledRequirement["status"] })}>
               {STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>{status}</option>
               ))}
@@ -51,7 +55,7 @@ export function RequirementDrawer({ requirement, onClose, onUpdate }: Requiremen
           </label>
           <label>
             优先级
-            <select value={requirement.priority} onChange={(event) => patch({ priority: event.target.value as ScheduledRequirement["priority"] })}>
+            <select value={requirement.priority} disabled={!canEdit} onChange={(event) => patch({ priority: event.target.value as ScheduledRequirement["priority"] })}>
               {PRIORITY_OPTIONS.map((priority) => (
                 <option key={priority} value={priority}>{priority}</option>
               ))}
@@ -64,6 +68,7 @@ export function RequirementDrawer({ requirement, onClose, onUpdate }: Requiremen
               min={1}
               max={80}
               value={requirement.estimateHours}
+              disabled={!canEdit}
               onChange={(event) => patch({ estimateHours: Number(event.target.value) })}
             />
           </label>
@@ -74,21 +79,23 @@ export function RequirementDrawer({ requirement, onClose, onUpdate }: Requiremen
               min={0}
               max={999}
               value={requirement.sequence}
+              disabled={!canEdit}
               onChange={(event) => patch({ sequence: Number(event.target.value) })}
             />
           </label>
           <label>
             开始日期
-            <input type="date" value={requirement.startDate ?? requirement.scheduledStart} onChange={(event) => patch({ startDate: event.target.value })} />
+            <input type="date" value={requirement.startDate ?? requirement.scheduledStart} disabled={!canEdit} onChange={(event) => patch({ startDate: event.target.value })} />
           </label>
           <label>
             截止日期
-            <input type="date" value={requirement.dueDate ?? ""} onChange={(event) => patch({ dueDate: event.target.value })} />
+            <input type="date" value={requirement.dueDate ?? ""} disabled={!canEdit} onChange={(event) => patch({ dueDate: event.target.value })} />
           </label>
           <label className="check-label">
             <input
               type="checkbox"
               checked={requirement.isRush}
+              disabled={!canEdit}
               onChange={(event) => patch({ isRush: event.target.checked })}
             />
             插单
@@ -97,15 +104,15 @@ export function RequirementDrawer({ requirement, onClose, onUpdate }: Requiremen
 
         <label className="stacked-label">
           插单原因
-          <textarea value={requirement.rushReason ?? ""} onChange={(event) => patch({ rushReason: event.target.value })} />
+          <textarea value={requirement.rushReason ?? ""} disabled={!canEdit} onChange={(event) => patch({ rushReason: event.target.value })} />
         </label>
         <label className="stacked-label">
           阻塞原因
-          <textarea value={requirement.blockedReason ?? ""} onChange={(event) => patch({ blockedReason: event.target.value })} />
+          <textarea value={requirement.blockedReason ?? ""} disabled={!canEdit} onChange={(event) => patch({ blockedReason: event.target.value })} />
         </label>
         <label className="stacked-label">
           备注
-          <textarea value={requirement.note ?? ""} onChange={(event) => patch({ note: event.target.value })} />
+          <textarea value={requirement.note ?? ""} disabled={!canEdit} onChange={(event) => patch({ note: event.target.value })} />
         </label>
 
         <dl className="detail-list">

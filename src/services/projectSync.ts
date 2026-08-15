@@ -23,10 +23,10 @@ export async function syncProjectRequirements(): Promise<SyncResult> {
   };
 }
 
-export async function triggerProjectSync(): Promise<SyncResult> {
+export async function triggerProjectSync(editKey = ""): Promise<SyncResult> {
   const response = await fetch("/api/sync", {
     method: "POST",
-    headers: getSyncHeaders()
+    headers: getEditHeaders(editKey)
   });
 
   if (!response.ok) {
@@ -47,11 +47,12 @@ export async function triggerProjectSync(): Promise<SyncResult> {
   };
 }
 
-export async function saveRequirementPatch(sourceId: string, patch: Partial<DesignRequirement>): Promise<DesignRequirement[] | null> {
+export async function saveRequirementPatch(sourceId: string, patch: Partial<DesignRequirement>, editKey = ""): Promise<DesignRequirement[] | null> {
   const response = await fetch("/api/updateRequirement", {
     method: "PATCH",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...getEditHeaders(editKey)
     },
     body: JSON.stringify({ sourceId, patch })
   });
@@ -96,7 +97,6 @@ async function fetchProjectItems(): Promise<ProjectWorkItem[]> {
   return payload.items;
 }
 
-function getSyncHeaders(): HeadersInit {
-  const secret = import.meta.env?.VITE_SYNC_SECRET;
-  return secret ? { Authorization: `Bearer ${secret}` } : {};
+function getEditHeaders(editKey: string): HeadersInit {
+  return editKey ? { Authorization: `Bearer ${editKey}` } : {};
 }

@@ -114,13 +114,44 @@ textarea {
 
 .primary-button:disabled {
   opacity: 0.55;
-  cursor: wait;
+  cursor: not-allowed;
 }
 
 .ghost-button,
 .error-banner button {
   color: #26344d;
   background: #ffffff;
+}
+
+.ghost-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mode-badge,
+.drawer-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mode-badge.readonly,
+.drawer-mode.readonly {
+  color: #526078;
+  border: 1px solid #d7dfeb;
+  background: #f5f7fb;
+}
+
+.mode-badge.edit,
+.drawer-mode.edit {
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+  background: #ecfdf5;
 }
 
 .filters select,
@@ -485,6 +516,20 @@ textarea {
   outline: none;
 }
 
+.person-cell select:disabled,
+.cell-select:disabled,
+.cell-number:disabled,
+.rush-toggle:disabled,
+.form-grid input:disabled,
+.form-grid select:disabled,
+.stacked-label textarea:disabled,
+.check-label input:disabled {
+  opacity: 1;
+  color: #526078;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
 .rush-toggle {
   display: inline-flex;
   align-items: center;
@@ -578,6 +623,10 @@ textarea {
 
 .drawer-head {
   padding-right: 36px;
+}
+
+.drawer-mode {
+  margin-left: 8px;
 }
 
 .drawer-head h2 {

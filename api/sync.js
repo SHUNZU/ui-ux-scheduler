@@ -9,7 +9,8 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (process.env.SYNC_SECRET && req.headers.authorization !== `Bearer ${process.env.SYNC_SECRET}`) {
+  const syncSecret = process.env.SYNC_SECRET || process.env.EDIT_KEY;
+  if (syncSecret && req.headers.authorization !== `Bearer ${syncSecret}`) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
