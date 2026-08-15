@@ -32,8 +32,8 @@ export function Toolbar({
   return (
     <header className="toolbar">
       <div className="toolbar-title">
-        <span className="eyebrow">Feishu Bitable Plugin</span>
-        <h1>设计需求排期视图</h1>
+        <span className="eyebrow">UIUX Requirement Scheduler</span>
+        <h1>UIUX 需求排期</h1>
       </div>
 
       <div className="toolbar-actions">

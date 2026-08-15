@@ -1,8 +1,8 @@
 {
-  "name": "feishu-design-scheduler",
+  "name": "uiux-requirement-scheduler",
   "version": "0.1.0",
   "private": true,
-  "description": "Feishu Bitable plugin view for design requirement scheduling.",
+  "description": "UIUX requirement scheduler with Feishu-style tables and automatic planning.",
   "scripts": {
     "start": "webpack serve --mode development --host 127.0.0.1",
     "build": "webpack --mode production",
