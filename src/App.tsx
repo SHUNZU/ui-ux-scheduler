@@ -138,6 +138,44 @@ export default function App() {
     });
   }
 
+  function handleReorderRequirements(reorderedVisible: ScheduledRequirement[]) {
+    if (!canEdit) return;
+
+    const visibleIds = new Set(reorderedVisible.map((item) => item.sourceId));
+    const visibleQueue = [...reorderedVisible];
+    const fullOrder = scheduled
+      .slice()
+      .sort((a, b) => a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt))
+      .map((item) => (visibleIds.has(item.sourceId) ? visibleQueue.shift() ?? item : item))
+      .map((item, index) => ({ ...item, sequence: index + 1, manualOverride: true }));
+
+    const patches = fullOrder
+      .filter((item) => requirements.some((requirement) => requirement.sourceId === item.sourceId && requirement.sequence !== item.sequence))
+      .map((item) => ({ sourceId: item.sourceId, sequence: item.sequence }));
+
+    if (patches.length === 0) return;
+
+    setRequirements((current) =>
+      current.map((item) => {
+        const reordered = fullOrder.find((next) => next.sourceId === item.sourceId);
+        return reordered ? { ...item, sequence: reordered.sequence, manualOverride: true } : item;
+      })
+    );
+    setSyncLabel(`已调整 ${patches.length} 条需求排序，正在保存`);
+
+    void Promise.all(
+      patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, editKey))
+    ).then((results) => {
+      const latest = [...results].reverse().find(Boolean);
+      if (latest) {
+        setRequirements(latest);
+        setSyncLabel("已保存拖动排序");
+      }
+    }).catch(() => {
+      setError("排序保存失败，请刷新后重试");
+    });
+  }
+
   const totalHours = filtered.reduce((sum, item) => sum + item.estimateHours, 0);
   const blockedCount = filtered.filter((item) => item.status === "阻塞").length;
   const overloadCount = filtered.filter((item) => item.overCapacity).length;
@@ -196,6 +234,7 @@ export default function App() {
           canEdit={canEdit}
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
+          onReorder={handleReorderRequirements}
         />
       )}
 
@@ -207,6 +246,7 @@ export default function App() {
           canEdit={canEdit}
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
+          onReorder={handleReorderRequirements}
         />
       )}
 

@@ -1,4 +1,5 @@
-import { ArrowUpRight, Flame, Link as LinkIcon, UserRound } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight, Flame, GripVertical, Link as LinkIcon, UserRound } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_COLORS, STATUS_OPTIONS } from "../lib/constants";
 import { RequirementPriority, RequirementStatus, ScheduledRequirement } from "../types";
 
@@ -9,6 +10,7 @@ interface RequirementTableProps {
   canEdit: boolean;
   onSelect: (requirement: ScheduledRequirement) => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
+  onReorder: (requirements: ScheduledRequirement[]) => void;
 }
 
 export function RequirementTable({
@@ -17,11 +19,34 @@ export function RequirementTable({
   productOwners,
   canEdit,
   onSelect,
-  onUpdate
+  onUpdate,
+  onReorder
 }: RequirementTableProps) {
+  const [draggingId, setDraggingId] = useState("");
+  const [dropTargetId, setDropTargetId] = useState("");
+
   const patch = (item: ScheduledRequirement, partial: Partial<ScheduledRequirement>) => {
     if (!canEdit) return;
     onUpdate({ ...item, ...partial, manualOverride: true });
+  };
+
+  const handleDrop = (target: ScheduledRequirement) => {
+    if (!canEdit || !draggingId || draggingId === target.sourceId) {
+      setDraggingId("");
+      setDropTargetId("");
+      return;
+    }
+
+    const fromIndex = requirements.findIndex((item) => item.sourceId === draggingId);
+    const toIndex = requirements.findIndex((item) => item.sourceId === target.sourceId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const next = [...requirements];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    onReorder(next.map((item, index) => ({ ...item, sequence: index + 1, manualOverride: true })));
+    setDraggingId("");
+    setDropTargetId("");
   };
 
   return (
@@ -29,6 +54,7 @@ export function RequirementTable({
       <table className="data-table">
         <thead>
           <tr>
+            <th className="drag-head"></th>
             <th>需求名称</th>
             <th>项目</th>
             <th>设计负责人</th>
@@ -45,7 +71,47 @@ export function RequirementTable({
         </thead>
         <tbody>
           {requirements.map((item) => (
-            <tr key={item.sourceId} onClick={() => onSelect(item)}>
+            <tr
+              key={item.sourceId}
+              className={[
+                draggingId === item.sourceId ? "dragging-row" : "",
+                dropTargetId === item.sourceId ? "drop-target-row" : ""
+              ].filter(Boolean).join(" ")}
+              onClick={() => onSelect(item)}
+              onDragOver={(event) => {
+                if (!canEdit || !draggingId) return;
+                event.preventDefault();
+                setDropTargetId(item.sourceId);
+              }}
+              onDragLeave={() => {
+                if (dropTargetId === item.sourceId) setDropTargetId("");
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                handleDrop(item);
+              }}
+            >
+              <td className="drag-cell">
+                <button
+                  className="drag-handle"
+                  draggable={canEdit}
+                  disabled={!canEdit}
+                  title={canEdit ? "拖动调整排序" : "只读模式不可排序"}
+                  onClick={(event) => event.stopPropagation()}
+                  onDragStart={(event) => {
+                    event.stopPropagation();
+                    setDraggingId(item.sourceId);
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", item.sourceId);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId("");
+                    setDropTargetId("");
+                  }}
+                >
+                  <GripVertical size={15} />
+                </button>
+              </td>
               <td>
                 <div className="name-cell">
                   {item.isRush && <Flame size={14} />}
