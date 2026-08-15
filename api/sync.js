@@ -19,8 +19,11 @@ module.exports = async function handler(req, res) {
     const items = await fetchFeishuWorkItems();
     const designItems = items.filter(isDesignWorkItem);
     const normalized = designItems.map((item) => normalizeWorkItem(item, syncedAt));
+    const existingRows = await listRequirements();
+    const existing = existingRows.map(fromDbRow);
+    const merged = mergeSyncedRequirements(existing, normalized);
 
-    await upsertRequirements(normalized);
+    await upsertRequirements(merged);
     const rows = await listRequirements();
     const requirements = rows.map(fromDbRow);
 
@@ -35,3 +38,34 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 };
+
+function mergeSyncedRequirements(existing, incoming) {
+  const bySource = new Map(existing.map((item) => [item.sourceId, item]));
+
+  return incoming.map((next) => {
+    const current = bySource.get(next.sourceId);
+    if (!current?.manualOverride) return next;
+
+    return {
+      ...next,
+      name: current.name,
+      project: current.project,
+      requester: current.requester,
+      productOwner: current.productOwner,
+      owner: current.owner,
+      priority: current.priority,
+      status: current.status,
+      estimateHours: current.estimateHours,
+      sequence: current.sequence,
+      isRush: current.isRush,
+      rushReason: current.rushReason,
+      startDate: current.startDate,
+      dueDate: current.dueDate,
+      autoScheduledDate: current.autoScheduledDate,
+      blockedReason: current.blockedReason,
+      note: current.note,
+      createdAt: current.createdAt,
+      manualOverride: true
+    };
+  });
+}
