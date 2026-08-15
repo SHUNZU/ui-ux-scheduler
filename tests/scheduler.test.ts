@@ -93,7 +93,7 @@ describe("scheduleRequirements", () => {
     expect(scheduled[1].scheduledStart).toBe("2026-08-13");
   });
 
-  it("only marks delay after the due date has actually passed", () => {
+  it("only marks delay after the scheduled end has actually passed", () => {
     const scheduled = scheduleRequirements(
       [
         {
@@ -110,6 +110,26 @@ describe("scheduleRequirements", () => {
     );
 
     expect(scheduled[0].scheduledEnd).toBe("2026-08-14");
+    expect(scheduled[0].delayedDays).toBe(0);
+    expect(scheduled[0].delayReason).toBe("");
+  });
+
+  it("does not mark overdue when the scheduled end is still in the future", () => {
+    const scheduled = scheduleRequirements(
+      [
+        {
+          ...baseRequirement,
+          id: "future-schedule",
+          sourceId: "future-schedule",
+          estimateHours: 4,
+          startDate: "2026-09-02",
+          dueDate: "2026-08-03"
+        }
+      ],
+      "2026-08-16"
+    );
+
+    expect(scheduled[0].scheduledEnd).toBe("2026-09-02");
     expect(scheduled[0].delayedDays).toBe(0);
     expect(scheduled[0].delayReason).toBe("");
   });

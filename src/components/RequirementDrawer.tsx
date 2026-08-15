@@ -13,7 +13,7 @@ interface RequirementDrawerProps {
 export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: RequirementDrawerProps) {
   if (!requirement) return null;
   const today = todayIso();
-  const isOverdue = Boolean(requirement.dueDate && requirement.dueDate < today && requirement.status !== "已完成");
+  const isOverdue = requirement.scheduledEnd < today && requirement.status !== "已完成";
   const scheduleImpact = isOverdue
     ? `逾期${requirement.delayedDays > 0 ? ` ${requirement.delayedDays} 个工作日` : ""}`
     : "无影响";

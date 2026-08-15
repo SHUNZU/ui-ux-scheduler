@@ -35,8 +35,8 @@ export function scheduleRequirements(
       offsetHours,
       overCapacity,
       unassigned: ownerLane === UNASSIGNED_OWNER,
-      delayedDays: calculateDelay(requirement.dueDate, baseDate, requirement.status),
-      delayReason: buildDelayReason(requirement, baseDate)
+      delayedDays: calculateDelay(end, baseDate, requirement.status),
+      delayReason: buildDelayReason(requirement, end, baseDate)
     };
   });
 }
@@ -130,14 +130,14 @@ function compareRequirementPriority(a: DesignRequirement, b: DesignRequirement):
   return a.createdAt.localeCompare(b.createdAt);
 }
 
-function calculateDelay(dueDate: string | undefined, baseDate: string, status: DesignRequirement["status"]): number {
-  if (!dueDate || status === "已完成" || baseDate <= dueDate) return 0;
-  return businessDayDiff(dueDate, baseDate);
+function calculateDelay(scheduledEnd: string, baseDate: string, status: DesignRequirement["status"]): number {
+  if (status === "已完成" || baseDate <= scheduledEnd) return 0;
+  return businessDayDiff(scheduledEnd, baseDate);
 }
 
-function buildDelayReason(requirement: DesignRequirement, baseDate: string): string {
-  if (!requirement.dueDate || requirement.status === "已完成" || baseDate <= requirement.dueDate) return "";
-  return "已超过截止日期且需求未完成";
+function buildDelayReason(requirement: DesignRequirement, scheduledEnd: string, baseDate: string): string {
+  if (requirement.status === "已完成" || baseDate <= scheduledEnd) return "";
+  return "已超过排期结束日期且需求未完成";
 }
 
 function findAvailableStart(

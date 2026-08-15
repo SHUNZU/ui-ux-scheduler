@@ -260,7 +260,7 @@ export function RequirementTable({
               </td>
               <td>{item.scheduledStart} 至 {item.scheduledEnd}</td>
               <td>
-                {item.dueDate && item.dueDate < today && item.status !== "已完成" ? (
+                {item.scheduledEnd < today && item.status !== "已完成" ? (
                   <span className="delay-tag overdue-tag">
                     <ArrowUpRight size={13} />
                     逾期 {item.delayedDays > 0 ? `${item.delayedDays} 工作日` : ""}

@@ -28,8 +28,8 @@ function scheduleRequirements(requirements, baseDate = todayIso()) {
       offsetHours,
       overCapacity,
       unassigned: ownerLane === UNASSIGNED_OWNER,
-      delayedDays: calculateDelay(requirement.dueDate, baseDate, requirement.status),
-      delayReason: buildDelayReason(requirement, baseDate)
+      delayedDays: calculateDelay(end, baseDate, requirement.status),
+      delayReason: buildDelayReason(requirement, end, baseDate)
     };
   });
 }
@@ -163,14 +163,14 @@ function businessDayDiff(start, end) {
   return count;
 }
 
-function calculateDelay(dueDate, baseDate, status) {
-  if (!dueDate || status === "已完成" || baseDate <= dueDate) return 0;
-  return businessDayDiff(dueDate, baseDate);
+function calculateDelay(scheduledEnd, baseDate, status) {
+  if (status === "已完成" || baseDate <= scheduledEnd) return 0;
+  return businessDayDiff(scheduledEnd, baseDate);
 }
 
-function buildDelayReason(requirement, baseDate) {
-  if (!requirement.dueDate || requirement.status === "已完成" || baseDate <= requirement.dueDate) return "";
-  return "已超过截止日期且需求未完成";
+function buildDelayReason(requirement, scheduledEnd, baseDate) {
+  if (requirement.status === "已完成" || baseDate <= scheduledEnd) return "";
+  return "已超过排期结束日期且需求未完成";
 }
 
 function parseIsoDate(date) {
