@@ -81,10 +81,10 @@ export interface OwnerLoad {
 }
 
 export interface Filters {
-  requester: string;
-  owner: string;
-  status: string;
-  priority: string;
+  requesters: string[];
+  owners: string[];
+  statuses: string[];
+  priorities: string[];
   startDate: string;
   endDate: string;
   overloadedOnly: boolean;

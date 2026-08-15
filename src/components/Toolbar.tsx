@@ -1,4 +1,4 @@
-import { CalendarRange, Eye, PencilLine, RefreshCcw, WandSparkles } from "lucide-react";
+import { CalendarRange, ChevronDown, Eye, PencilLine, RefreshCcw, WandSparkles } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -26,6 +26,8 @@ export function Toolbar({
   onReschedule
 }: ToolbarProps) {
   const patch = (partial: Partial<Filters>) => onChange({ ...filters, ...partial });
+  const toggleValue = (values: string[], value: string) =>
+    values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 
   return (
     <header className="toolbar">
@@ -50,30 +52,38 @@ export function Toolbar({
       </div>
 
       <div className="filters">
-        <select value={filters.requester} onChange={(event) => patch({ requester: event.target.value })}>
-          <option value="">全部下发人</option>
-          {requesters.map((requester) => (
-            <option key={requester} value={requester}>{requester}</option>
-          ))}
-        </select>
-        <select value={filters.owner} onChange={(event) => patch({ owner: event.target.value })}>
-          <option value="">全部负责人</option>
-          {owners.map((owner) => (
-            <option key={owner} value={owner}>{owner}</option>
-          ))}
-        </select>
-        <select value={filters.status} onChange={(event) => patch({ status: event.target.value })}>
-          <option value="">全部状态</option>
-          {STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>{status}</option>
-          ))}
-        </select>
-        <select value={filters.priority} onChange={(event) => patch({ priority: event.target.value })}>
-          <option value="">全部优先级</option>
-          {PRIORITY_OPTIONS.map((priority) => (
-            <option key={priority} value={priority}>{priority}</option>
-          ))}
-        </select>
+        <MultiFilter
+          label="下发人"
+          allLabel="全部下发人"
+          options={requesters}
+          values={filters.requesters}
+          onChange={(value) => patch({ requesters: toggleValue(filters.requesters, value) })}
+          onClear={() => patch({ requesters: [] })}
+        />
+        <MultiFilter
+          label="负责人"
+          allLabel="全部负责人"
+          options={owners}
+          values={filters.owners}
+          onChange={(value) => patch({ owners: toggleValue(filters.owners, value) })}
+          onClear={() => patch({ owners: [] })}
+        />
+        <MultiFilter
+          label="状态"
+          allLabel="全部状态"
+          options={[...STATUS_OPTIONS]}
+          values={filters.statuses}
+          onChange={(value) => patch({ statuses: toggleValue(filters.statuses, value) })}
+          onClear={() => patch({ statuses: [] })}
+        />
+        <MultiFilter
+          label="优先级"
+          allLabel="全部优先级"
+          options={[...PRIORITY_OPTIONS]}
+          values={filters.priorities}
+          onChange={(value) => patch({ priorities: toggleValue(filters.priorities, value) })}
+          onClear={() => patch({ priorities: [] })}
+        />
         <label className="date-filter">
           <CalendarRange size={15} />
           <input type="date" value={filters.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
@@ -118,5 +128,44 @@ export function Toolbar({
 
       <div className="sync-meta">{syncLabel}</div>
     </header>
+  );
+}
+
+interface MultiFilterProps {
+  label: string;
+  allLabel: string;
+  options: string[];
+  values: string[];
+  onChange: (value: string) => void;
+  onClear: () => void;
+}
+
+function MultiFilter({ label, allLabel, options, values, onChange, onClear }: MultiFilterProps) {
+  const summary = values.length === 0
+    ? allLabel
+    : values.length === 1
+      ? values[0]
+      : `${label} ${values.length} 项`;
+
+  return (
+    <details className="multi-filter">
+      <summary>
+        <span>{summary}</span>
+        <ChevronDown size={14} />
+      </summary>
+      <div className="multi-filter-menu">
+        <button type="button" className="multi-filter-clear" onClick={onClear}>全部</button>
+        {options.map((option) => (
+          <label key={option} className="multi-filter-option">
+            <input
+              type="checkbox"
+              checked={values.includes(option)}
+              onChange={() => onChange(option)}
+            />
+            <span>{option}</span>
+          </label>
+        ))}
+      </div>
+    </details>
   );
 }

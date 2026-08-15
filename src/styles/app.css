@@ -318,18 +318,94 @@ textarea {
   background: #ecfdf5;
 }
 
-.filters select,
 .filters input,
-.date-filter {
+.date-filter,
+.multi-filter summary {
   min-height: 34px;
   border: 1px solid #d7dfeb;
   border-radius: 6px;
   background: #ffffff;
 }
 
-.filters select,
 .filters input {
   padding: 0 10px;
+}
+
+.multi-filter {
+  position: relative;
+}
+
+.multi-filter summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 126px;
+  padding: 0 10px;
+  color: #334155;
+  cursor: pointer;
+  list-style: none;
+}
+
+.multi-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.multi-filter[open] summary {
+  border-color: #2f6df6;
+  box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.12);
+}
+
+.multi-filter-menu {
+  position: absolute;
+  z-index: 20;
+  top: 40px;
+  left: 0;
+  min-width: 180px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid #d7dfeb;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
+}
+
+.multi-filter-clear,
+.multi-filter-option {
+  width: 100%;
+  min-height: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #334155;
+  font: inherit;
+  text-align: left;
+}
+
+.multi-filter-clear {
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.multi-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.multi-filter-clear:hover,
+.multi-filter-option:hover {
+  background: #f3f6fb;
+}
+
+.multi-filter-option input {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  padding: 0;
 }
 
 .date-filter {

@@ -16,10 +16,10 @@ import { DesignRequirement, Filters, ScheduledRequirement } from "./types";
 import "./styles/app.css";
 
 const initialFilters: Filters = {
-  requester: "",
-  owner: "",
-  status: "",
-  priority: "",
+  requesters: [],
+  owners: [],
+  statuses: [],
+  priorities: [],
   startDate: "",
   endDate: "",
   overloadedOnly: false,
@@ -48,10 +48,10 @@ export default function App() {
   const scheduled = useMemo(() => scheduleRequirements(requirements, scheduleSeed), [requirements, scheduleSeed]);
   const filtered = useMemo(() => {
     return scheduled.filter((item) => {
-      if (filters.requester && item.requester !== filters.requester) return false;
-      if (filters.owner && item.ownerLane !== filters.owner) return false;
-      if (filters.status && item.status !== filters.status) return false;
-      if (filters.priority && item.priority !== filters.priority) return false;
+      if (filters.requesters.length > 0 && !filters.requesters.includes(item.requester)) return false;
+      if (filters.owners.length > 0 && !filters.owners.includes(item.ownerLane)) return false;
+      if (filters.statuses.length > 0 && !filters.statuses.includes(item.status)) return false;
+      if (filters.priorities.length > 0 && !filters.priorities.includes(item.priority)) return false;
       if (filters.startDate && item.scheduledEnd < filters.startDate) return false;
       if (filters.endDate && item.scheduledStart > filters.endDate) return false;
       if (filters.overloadedOnly && !item.overCapacity) return false;
