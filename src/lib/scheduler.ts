@@ -64,7 +64,7 @@ function applyDailyAverageEstimates(
 }
 
 function shouldUseAverageEstimate(requirement: DesignRequirement): boolean {
-  return !requirement.manualOverride && requirement.estimateHours >= DAILY_CAPACITY_HOURS;
+  return requirement.estimateHours === DAILY_CAPACITY_HOURS;
 }
 
 function buildEstimateGroupKey(requirement: DesignRequirement, baseDate: string): string {

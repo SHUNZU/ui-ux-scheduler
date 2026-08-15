@@ -54,7 +54,7 @@ function applyDailyAverageEstimates(requirements, baseDate) {
 }
 
 function shouldUseAverageEstimate(requirement) {
-  return !requirement.manualOverride && requirement.estimateHours >= DAILY_CAPACITY_HOURS;
+  return requirement.estimateHours === DAILY_CAPACITY_HOURS;
 }
 
 function buildEstimateGroupKey(requirement, baseDate) {

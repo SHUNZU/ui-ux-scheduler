@@ -106,6 +106,32 @@ describe("scheduleRequirements", () => {
     expect(scheduled[1].scheduledStart).toBe("2026-08-13");
   });
 
+  it("still averages default estimates after non-estimate manual edits", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "one", sourceId: "one", estimateHours: 8, startDate: "2026-08-13", manualOverride: true, status: "已完成" },
+        { ...baseRequirement, id: "two", sourceId: "two", estimateHours: 8, startDate: "2026-08-13" }
+      ],
+      "2026-08-13"
+    );
+
+    expect(scheduled[0].estimateHours).toBe(4);
+    expect(scheduled[1].estimateHours).toBe(4);
+  });
+
+  it("keeps explicit non-default estimates", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "one", sourceId: "one", estimateHours: 6, startDate: "2026-08-13", manualOverride: true },
+        { ...baseRequirement, id: "two", sourceId: "two", estimateHours: 8, startDate: "2026-08-13" }
+      ],
+      "2026-08-13"
+    );
+
+    const explicit = scheduled.find((item) => item.sourceId === "one");
+    expect(explicit?.estimateHours).toBe(6);
+  });
+
   it("only marks delay after the scheduled end has actually passed", () => {
     const scheduled = scheduleRequirements(
       [
