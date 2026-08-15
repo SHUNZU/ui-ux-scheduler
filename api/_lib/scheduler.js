@@ -71,11 +71,12 @@ function compareRequirementPriority(a, b) {
   const activeDelta = Number(a.status === "已完成") - Number(b.status === "已完成");
   if (activeDelta !== 0) return activeDelta;
 
+  const dateA = a.startDate || a.autoScheduledDate || "9999-12-31";
+  const dateB = b.startDate || b.autoScheduledDate || "9999-12-31";
+  if (dateA !== dateB) return dateA.localeCompare(dateB);
+
   const rushDelta = Number(b.isRush) - Number(a.isRush);
   if (rushDelta !== 0) return rushDelta;
-
-  const sequenceDelta = a.sequence - b.sequence;
-  if (sequenceDelta !== 0) return sequenceDelta;
 
   const priorityDelta = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
   if (priorityDelta !== 0) return priorityDelta;
@@ -83,6 +84,9 @@ function compareRequirementPriority(a, b) {
   const dueA = a.dueDate || "9999-12-31";
   const dueB = b.dueDate || "9999-12-31";
   if (dueA !== dueB) return dueA.localeCompare(dueB);
+
+  const sequenceDelta = a.sequence - b.sequence;
+  if (sequenceDelta !== 0) return sequenceDelta;
 
   return a.createdAt.localeCompare(b.createdAt);
 }

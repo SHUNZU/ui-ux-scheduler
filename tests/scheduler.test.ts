@@ -64,6 +64,19 @@ describe("scheduleRequirements", () => {
     expect(scheduled[0].sourceId).toBe("urgent");
   });
 
+  it("keeps earlier scheduled dates ahead of later rows after refresh", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "late", sourceId: "late", startDate: "2026-09-22", sequence: 27 },
+        { ...baseRequirement, id: "early", sourceId: "early", startDate: "2026-08-18", priority: "P0", sequence: 28 }
+      ],
+      "2026-08-13"
+    );
+
+    expect(scheduled[0].sourceId).toBe("early");
+    expect(scheduled[0].scheduledStart).toBe("2026-08-18");
+  });
+
   it("moves same-owner work to the next available day when daily capacity is full", () => {
     const scheduled = scheduleRequirements(
       [
