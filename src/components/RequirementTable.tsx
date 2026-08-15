@@ -265,11 +265,6 @@ export function RequirementTable({
                     <ArrowUpRight size={13} />
                     逾期 {item.delayedDays > 0 ? `${item.delayedDays} 工作日` : ""}
                   </span>
-                ) : item.delayedDays > 0 ? (
-                  <span className="delay-tag deferred-tag">
-                    <ArrowUpRight size={13} />
-                    顺延 {item.delayedDays} 工作日
-                  </span>
                 ) : "无"}
               </td>
               <td>

@@ -16,9 +16,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
   const isOverdue = Boolean(requirement.dueDate && requirement.dueDate < today && requirement.status !== "已完成");
   const scheduleImpact = isOverdue
     ? `逾期${requirement.delayedDays > 0 ? ` ${requirement.delayedDays} 个工作日` : ""}`
-    : requirement.delayedDays > 0
-      ? `顺延 ${requirement.delayedDays} 个工作日，${requirement.delayReason}`
-      : "无影响";
+    : "无影响";
 
   const patch = (partial: Partial<ScheduledRequirement>) => {
     if (!canEdit) return;

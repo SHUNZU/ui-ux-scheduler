@@ -9,7 +9,8 @@ export function scheduleRequirements(
   baseDate = todayIso()
 ): ScheduledRequirement[] {
   const loads: OwnerDayLoad = {};
-  const ordered = [...requirements].sort(compareRequirementPriority);
+  const estimated = applyDailyAverageEstimates(requirements, baseDate);
+  const ordered = estimated.sort(compareRequirementPriority);
 
   return ordered.map((requirement) => {
     const ownerLane = requirement.owner || UNASSIGNED_OWNER;
@@ -34,10 +35,46 @@ export function scheduleRequirements(
       offsetHours,
       overCapacity,
       unassigned: ownerLane === UNASSIGNED_OWNER,
-      delayedDays: calculateDelay(requirement.originalEndDate ?? requirement.dueDate, end),
-      delayReason: buildDelayReason(requirement, end)
+      delayedDays: calculateDelay(requirement.dueDate, baseDate, requirement.status),
+      delayReason: buildDelayReason(requirement, baseDate)
     };
   });
+}
+
+function applyDailyAverageEstimates(
+  requirements: DesignRequirement[],
+  baseDate: string
+): DesignRequirement[] {
+  const counts = new Map<string, number>();
+
+  for (const requirement of requirements) {
+    if (!shouldUseAverageEstimate(requirement)) continue;
+    const key = buildEstimateGroupKey(requirement, baseDate);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return requirements.map((requirement) => {
+    if (!shouldUseAverageEstimate(requirement)) return requirement;
+    const count = counts.get(buildEstimateGroupKey(requirement, baseDate)) ?? 1;
+    return {
+      ...requirement,
+      estimateHours: roundHours(DAILY_CAPACITY_HOURS / count)
+    };
+  });
+}
+
+function shouldUseAverageEstimate(requirement: DesignRequirement): boolean {
+  return !requirement.manualOverride && requirement.estimateHours >= DAILY_CAPACITY_HOURS;
+}
+
+function buildEstimateGroupKey(requirement: DesignRequirement, baseDate: string): string {
+  const owner = requirement.owner || UNASSIGNED_OWNER;
+  const date = requirement.startDate || requirement.autoScheduledDate || baseDate;
+  return `${owner}:${date}`;
+}
+
+function roundHours(hours: number): number {
+  return Math.max(0.5, Math.round(hours * 10) / 10);
 }
 
 export function summarizeOwnerLoads(
@@ -93,16 +130,14 @@ function compareRequirementPriority(a: DesignRequirement, b: DesignRequirement):
   return a.createdAt.localeCompare(b.createdAt);
 }
 
-function calculateDelay(originalEnd: string | undefined, scheduledEnd: string): number {
-  if (!originalEnd || scheduledEnd <= originalEnd) return 0;
-  return businessDayDiff(originalEnd, scheduledEnd);
+function calculateDelay(dueDate: string | undefined, baseDate: string, status: DesignRequirement["status"]): number {
+  if (!dueDate || status === "已完成" || baseDate <= dueDate) return 0;
+  return businessDayDiff(dueDate, baseDate);
 }
 
-function buildDelayReason(requirement: DesignRequirement, scheduledEnd: string): string {
-  const originalEnd = requirement.originalEndDate ?? requirement.dueDate;
-  if (!originalEnd || scheduledEnd <= originalEnd) return "";
-  if (requirement.isRush) return "插单需求已优先排入队列";
-  return "前置插单或同负责人产能占用导致顺延";
+function buildDelayReason(requirement: DesignRequirement, baseDate: string): string {
+  if (!requirement.dueDate || requirement.status === "已完成" || baseDate <= requirement.dueDate) return "";
+  return "已超过截止日期且需求未完成";
 }
 
 function findAvailableStart(

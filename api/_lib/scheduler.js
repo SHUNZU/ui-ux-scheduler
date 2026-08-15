@@ -4,7 +4,7 @@ const PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 };
 
 function scheduleRequirements(requirements, baseDate = todayIso()) {
   const loads = {};
-  const ordered = [...requirements].sort(compareRequirementPriority);
+  const ordered = applyDailyAverageEstimates(requirements, baseDate).sort(compareRequirementPriority);
 
   return ordered.map((requirement) => {
     const ownerLane = requirement.owner || UNASSIGNED_OWNER;
@@ -28,10 +28,43 @@ function scheduleRequirements(requirements, baseDate = todayIso()) {
       offsetHours,
       overCapacity,
       unassigned: ownerLane === UNASSIGNED_OWNER,
-      delayedDays: calculateDelay(requirement.originalEndDate || requirement.dueDate, end),
-      delayReason: buildDelayReason(requirement, end)
+      delayedDays: calculateDelay(requirement.dueDate, baseDate, requirement.status),
+      delayReason: buildDelayReason(requirement, baseDate)
     };
   });
+}
+
+function applyDailyAverageEstimates(requirements, baseDate) {
+  const counts = new Map();
+
+  for (const requirement of requirements) {
+    if (!shouldUseAverageEstimate(requirement)) continue;
+    const key = buildEstimateGroupKey(requirement, baseDate);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  return requirements.map((requirement) => {
+    if (!shouldUseAverageEstimate(requirement)) return requirement;
+    const count = counts.get(buildEstimateGroupKey(requirement, baseDate)) || 1;
+    return {
+      ...requirement,
+      estimateHours: roundHours(DAILY_CAPACITY_HOURS / count)
+    };
+  });
+}
+
+function shouldUseAverageEstimate(requirement) {
+  return !requirement.manualOverride && requirement.estimateHours >= DAILY_CAPACITY_HOURS;
+}
+
+function buildEstimateGroupKey(requirement, baseDate) {
+  const owner = requirement.owner || UNASSIGNED_OWNER;
+  const date = requirement.startDate || requirement.autoScheduledDate || baseDate;
+  return `${owner}:${date}`;
+}
+
+function roundHours(hours) {
+  return Math.max(0.5, Math.round(hours * 10) / 10);
 }
 
 function compareRequirementPriority(a, b) {
@@ -130,16 +163,14 @@ function businessDayDiff(start, end) {
   return count;
 }
 
-function calculateDelay(originalEnd, scheduledEnd) {
-  if (!originalEnd || scheduledEnd <= originalEnd) return 0;
-  return businessDayDiff(originalEnd, scheduledEnd);
+function calculateDelay(dueDate, baseDate, status) {
+  if (!dueDate || status === "已完成" || baseDate <= dueDate) return 0;
+  return businessDayDiff(dueDate, baseDate);
 }
 
-function buildDelayReason(requirement, scheduledEnd) {
-  const originalEnd = requirement.originalEndDate || requirement.dueDate;
-  if (!originalEnd || scheduledEnd <= originalEnd) return "";
-  if (requirement.isRush) return "插单需求已优先排入队列";
-  return "前置插单或同负责人产能占用导致顺延";
+function buildDelayReason(requirement, baseDate) {
+  if (!requirement.dueDate || requirement.status === "已完成" || baseDate <= requirement.dueDate) return "";
+  return "已超过截止日期且需求未完成";
 }
 
 function parseIsoDate(date) {

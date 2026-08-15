@@ -78,6 +78,42 @@ describe("scheduleRequirements", () => {
     expect(scheduled[1].overCapacity).toBe(false);
   });
 
+  it("averages default full-day estimates across same-owner same-day requirements", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "one", sourceId: "one", estimateHours: 8, startDate: "2026-08-13" },
+        { ...baseRequirement, id: "two", sourceId: "two", estimateHours: 8, startDate: "2026-08-13" }
+      ],
+      "2026-08-13"
+    );
+
+    expect(scheduled[0].estimateHours).toBe(4);
+    expect(scheduled[1].estimateHours).toBe(4);
+    expect(scheduled[0].scheduledStart).toBe("2026-08-13");
+    expect(scheduled[1].scheduledStart).toBe("2026-08-13");
+  });
+
+  it("only marks delay after the due date has actually passed", () => {
+    const scheduled = scheduleRequirements(
+      [
+        {
+          ...baseRequirement,
+          id: "future",
+          sourceId: "future",
+          estimateHours: 16,
+          manualOverride: true,
+          startDate: "2026-08-13",
+          dueDate: "2026-08-20"
+        }
+      ],
+      "2026-08-13"
+    );
+
+    expect(scheduled[0].scheduledEnd).toBe("2026-08-14");
+    expect(scheduled[0].delayedDays).toBe(0);
+    expect(scheduled[0].delayReason).toBe("");
+  });
+
   it("puts missing owners into the unassigned lane", () => {
     const scheduled = scheduleRequirements([{ ...baseRequirement, owner: "" }], "2026-08-13");
 
