@@ -3,14 +3,14 @@ import { addDays, format, parseISO } from "date-fns";
 import { AlertTriangle } from "lucide-react";
 import { GanttBoard } from "./components/GanttBoard";
 import { RequirementDrawer } from "./components/RequirementDrawer";
-import { RequirementTable } from "./components/RequirementTable";
+import { ProjectTables } from "./components/ProjectTables";
 import { SummaryRail } from "./components/SummaryRail";
 import { Toolbar } from "./components/Toolbar";
 import { scheduleRequirements, summarizeOwnerLoads } from "./lib/scheduler";
 import { todayIso, toIsoDate } from "./lib/date";
 import { UNASSIGNED_OWNER } from "./lib/constants";
 import { upsertRequirementsToBitable } from "./services/bitable";
-import { saveRequirementPatch, syncProjectRequirements, triggerProjectSync } from "./services/projectSync";
+import { createManualRequirement, saveRequirementPatch, syncProjectRequirements, triggerProjectSync } from "./services/projectSync";
 import { DesignRequirement, Filters, ScheduledRequirement } from "./types";
 import "./styles/app.css";
 
@@ -176,6 +176,72 @@ export default function App() {
     });
   }
 
+  async function handleAddProject() {
+    if (!canEdit) return;
+    const projectName = window.prompt("请输入项目表名称", `新项目 ${new Date().toLocaleDateString("zh-CN")}`)?.trim();
+    if (!projectName) return;
+    await handleAddRequirement(projectName);
+  }
+
+  async function handleAddRequirement(project: string) {
+    if (!canEdit) return;
+    const maxSequence = requirements.reduce((max, item) => Math.max(max, item.sequence), 0);
+    const createdAt = new Date().toISOString();
+    const sourceId = `MANUAL-${Date.now()}`;
+    const next = {
+      id: sourceId,
+      sourceId,
+      name: "新需求",
+      project,
+      sourceUrl: "",
+      requester: "",
+      productOwner: "",
+      owner: "",
+      priority: "P2" as const,
+      status: "待设计" as const,
+      estimateHours: 8,
+      sequence: maxSequence + 1,
+      isRush: false,
+      createdAt,
+      syncedAt: createdAt,
+      manualOverride: true
+    };
+
+    setRequirements((current) => [...current, next]);
+    setSyncLabel(`已新增 ${project} / 新需求，正在保存`);
+
+    const cloudRequirements = await createManualRequirement(next, editKey);
+    if (cloudRequirements) {
+      setRequirements(cloudRequirements);
+      setSyncLabel("已保存新增需求");
+    } else {
+      setError("新增需求失败：当前链接没有编辑权限或编辑密钥不正确");
+    }
+  }
+
+  function handleRenameProject(fromProject: string, toProject: string) {
+    if (!canEdit || !fromProject || !toProject || fromProject === toProject) return;
+    const affected = requirements.filter((item) => item.project === fromProject);
+    if (affected.length === 0) return;
+
+    setRequirements((current) =>
+      current.map((item) => (item.project === fromProject ? { ...item, project: toProject, manualOverride: true } : item))
+    );
+    setSyncLabel(`已将 ${fromProject} 改名为 ${toProject}，正在保存`);
+
+    void Promise.all(
+      affected.map((item) => saveRequirementPatch(item.sourceId, { project: toProject, manualOverride: true }, editKey))
+    ).then((results) => {
+      const latest = [...results].reverse().find(Boolean);
+      if (latest) {
+        setRequirements(latest);
+        setSyncLabel("已保存项目表名称");
+      }
+    }).catch(() => {
+      setError("项目表改名保存失败，请刷新后重试");
+    });
+  }
+
   const totalHours = filtered.reduce((sum, item) => sum + item.estimateHours, 0);
   const blockedCount = filtered.filter((item) => item.status === "阻塞").length;
   const overloadCount = filtered.filter((item) => item.overCapacity).length;
@@ -227,7 +293,7 @@ export default function App() {
       )}
 
       {viewMode === "table" && (
-        <RequirementTable
+        <ProjectTables
           requirements={filtered}
           designOwners={owners}
           productOwners={productOwners}
@@ -235,11 +301,14 @@ export default function App() {
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
           onReorder={handleReorderRequirements}
+          onRenameProject={handleRenameProject}
+          onAddRequirement={handleAddRequirement}
+          onAddProject={handleAddProject}
         />
       )}
 
       {viewMode === "impact" && (
-        <RequirementTable
+        <ProjectTables
           requirements={filtered.filter((item) => item.isRush || item.delayedDays > 0)}
           designOwners={owners}
           productOwners={productOwners}
@@ -247,6 +316,9 @@ export default function App() {
           onSelect={setSelected}
           onUpdate={handleUpdateRequirement}
           onReorder={handleReorderRequirements}
+          onRenameProject={handleRenameProject}
+          onAddRequirement={handleAddRequirement}
+          onAddProject={handleAddProject}
         />
       )}
 

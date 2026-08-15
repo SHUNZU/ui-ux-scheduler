@@ -62,6 +62,21 @@ export async function saveRequirementPatch(sourceId: string, patch: Partial<Desi
   return payload.requirements ?? null;
 }
 
+export async function createManualRequirement(requirement: Partial<DesignRequirement>, editKey = ""): Promise<DesignRequirement[] | null> {
+  const response = await fetch("/api/createRequirement", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getEditHeaders(editKey)
+    },
+    body: JSON.stringify(requirement)
+  });
+
+  if (!response.ok) return null;
+  const payload = (await response.json()) as { requirements?: DesignRequirement[] };
+  return payload.requirements ?? null;
+}
+
 async function fetchCloudRequirements(): Promise<SyncResult | null> {
   try {
     const response = await fetch("/api/requirements");
