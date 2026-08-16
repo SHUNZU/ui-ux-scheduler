@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { ExternalLink, X } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { todayIso } from "../lib/date";
@@ -12,6 +13,18 @@ interface RequirementDrawerProps {
 }
 
 export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit, onUpdate }: RequirementDrawerProps) {
+  const drawerRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!requirement) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!drawerRef.current?.contains(target)) onClose();
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [requirement, onClose]);
+
   if (!requirement) return null;
   const today = todayIso();
   const isOverdue = requirement.scheduledEnd < today && requirement.status !== "已完成";
@@ -33,7 +46,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit
 
   return (
     <div className="drawer-panel">
-      <aside className="drawer">
+      <aside className="drawer" ref={drawerRef}>
         <button className="icon-button close-button" onClick={onClose} title="关闭">
           <X size={18} />
         </button>

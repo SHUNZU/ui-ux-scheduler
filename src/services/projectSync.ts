@@ -124,5 +124,5 @@ async function fetchProjectItems(): Promise<ProjectWorkItem[]> {
 }
 
 function getEditHeaders(editKey: string): HeadersInit {
-  return editKey ? { Authorization: `Bearer ${editKey}` } : {};
+  return editKey ? { Authorization: `Bearer ${editKey}`, "X-Edit-Key": editKey } : {};
 }
