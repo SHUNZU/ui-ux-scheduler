@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronDown, Eye, PencilLine, RefreshCcw, WandSparkles } from "lucide-react";
+import { CalendarRange, ChevronDown, Eye, PencilLine, RefreshCcw } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -12,7 +12,6 @@ interface ToolbarProps {
   onRequestEdit: () => void;
   onChange: (filters: Filters) => void;
   onSync: () => void;
-  onReschedule: () => void;
 }
 
 export function Toolbar({
@@ -24,8 +23,7 @@ export function Toolbar({
   canEdit,
   onRequestEdit,
   onChange,
-  onSync,
-  onReschedule
+  onSync
 }: ToolbarProps) {
   const patch = (partial: Partial<Filters>) => onChange({ ...filters, ...partial });
   const toggleValue = (values: string[], value: string) =>
@@ -46,10 +44,6 @@ export function Toolbar({
         <button className="primary-button" onClick={onSync} disabled={loading} title={canEdit ? "重新同步飞书项目需求" : "输入管理员密码后同步"}>
           <RefreshCcw size={16} />
           {loading ? "同步中" : "重新同步"}
-        </button>
-        <button className="ghost-button" onClick={onReschedule} title={canEdit ? "按优先级重新自动排期" : "输入管理员密码后重新排期"}>
-          <WandSparkles size={16} />
-          重新排期
         </button>
       </div>
 

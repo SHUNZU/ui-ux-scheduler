@@ -484,9 +484,6 @@ export default function App() {
         onRequestEdit={ensureEditAccess}
         onChange={setFilters}
         onSync={handleSync}
-        onReschedule={() => {
-          if (ensureEditAccess()) setScheduleSeed(todayIso());
-        }}
       />
 
       <ViewTabs

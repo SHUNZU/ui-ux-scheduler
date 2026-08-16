@@ -17,6 +17,15 @@ interface GanttBoardProps {
 }
 
 type GanttScale = "week" | "month" | "quarter";
+type GestureMode = "move" | "start" | "end";
+
+interface GesturePreview {
+  sourceId: string;
+  mode: GestureMode;
+  deltaDays: number;
+  start: string;
+  end: string;
+}
 
 const SCALE_WIDTH = {
   week: 128,
@@ -27,7 +36,8 @@ const ROW_HEIGHT = 86;
 
 export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, canEdit, onScaleChange, onSelect, onUpdate }: GanttBoardProps) {
   const [activeGestureId, setActiveGestureId] = useState("");
-  const gestureRef = useRef<{ item: ScheduledRequirement; mode: "move" | "start" | "end"; startX: number } | null>(null);
+  const [gesturePreview, setGesturePreview] = useState<GesturePreview | null>(null);
+  const gestureRef = useRef<{ item: ScheduledRequirement; mode: GestureMode; startX: number } | null>(null);
   const days = eachDay(rangeStart, rangeEnd);
   const dayWidth = SCALE_WIDTH[scale];
 
@@ -39,6 +49,22 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
       dueDate: toIsoDate(addDays(parseISO(item.scheduledEnd), deltaDays)),
       manualOverride: true
     });
+  };
+
+  const getPreview = (item: ScheduledRequirement, mode: GestureMode, deltaDays: number): GesturePreview => {
+    const nextStart = mode === "move" || mode === "start"
+      ? toIsoDate(addDays(parseISO(item.scheduledStart), deltaDays))
+      : item.scheduledStart;
+    const nextEnd = mode === "move" || mode === "end"
+      ? toIsoDate(addDays(parseISO(item.scheduledEnd), deltaDays))
+      : item.scheduledEnd;
+    return {
+      sourceId: item.sourceId,
+      mode,
+      deltaDays,
+      start: nextStart,
+      end: nextEnd < nextStart ? nextStart : nextEnd
+    };
   };
 
   const resize = (item: ScheduledRequirement, edge: "start" | "end", deltaDays: number) => {
@@ -56,17 +82,27 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
     });
   };
 
-  const startGesture = (event: ReactPointerEvent, item: ScheduledRequirement, mode: "move" | "start" | "end") => {
+  const startGesture = (event: ReactPointerEvent, item: ScheduledRequirement, mode: GestureMode) => {
     if (!canEdit) return;
     event.preventDefault();
     event.stopPropagation();
     gestureRef.current = { item, mode, startX: event.clientX };
     setActiveGestureId(item.sourceId);
+    setGesturePreview(getPreview(item, mode, 0));
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const gesture = gestureRef.current;
+      if (!gesture) return;
+      const deltaDays = Math.round((moveEvent.clientX - gesture.startX) / dayWidth);
+      setGesturePreview(getPreview(gesture.item, gesture.mode, deltaDays));
+    };
 
     const handlePointerUp = (upEvent: PointerEvent) => {
       const gesture = gestureRef.current;
       gestureRef.current = null;
       setActiveGestureId("");
+      setGesturePreview(null);
+      window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
       if (!gesture) return;
 
@@ -76,6 +112,7 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
       if (gesture.mode === "end") resize(gesture.item, "end", deltaDays);
     };
 
+    window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
   };
 
@@ -106,32 +143,61 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
               {laneItems.map((item) => {
                 const startIndex = Math.max(0, days.indexOf(item.scheduledStart));
                 const width = Math.max(dayWidth * item.daySpan - 14, scale === "week" ? 90 : 48);
+                const preview = gesturePreview?.sourceId === item.sourceId ? gesturePreview : null;
+                const previewStartIndex = preview ? Math.max(0, days.indexOf(preview.start)) : startIndex;
+                const previewSpan = preview ? Math.max(1, differenceInCalendarDays(parseISO(preview.end), parseISO(preview.start)) + 1) : item.daySpan;
+                const previewWidth = Math.max(dayWidth * previewSpan - 14, scale === "week" ? 90 : 48);
                 return (
-                  <button
-                    key={item.id}
-                    className={`task-bar ${item.overCapacity ? "is-over" : ""} ${item.unassigned ? "is-unassigned" : ""} ${activeGestureId === item.sourceId ? "is-moving" : ""}`}
-                    style={{
-                      left: startIndex * dayWidth + 7,
-                      width,
-                      background: STATUS_COLORS[item.status],
-                      top: 16 + Math.min(26, item.offsetHours * 3)
-                    }}
-                    onClick={() => onSelect(item)}
-                    onPointerDown={(event) => startGesture(event, item, "move")}
-                    title={`${item.name} / ${item.estimateHours}h`}
-                  >
-                    <span
-                      className="task-resize left"
-                      onPointerDown={(event) => startGesture(event, item, "start")}
-                    />
-                    <strong>{item.priority}</strong>
-                    <span>{item.name}</span>
-                    <small>{item.estimateHours}h</small>
-                    <span
-                      className="task-resize right"
-                      onPointerDown={(event) => startGesture(event, item, "end")}
-                    />
-                  </button>
+                  <div key={item.id}>
+                    {preview && (
+                      <>
+                        <div
+                          className="task-ghost"
+                          style={{
+                            left: startIndex * dayWidth + 7,
+                            width,
+                            top: 16 + Math.min(26, item.offsetHours * 3)
+                          }}
+                        />
+                        <div
+                          className={`task-preview ${preview.mode}`}
+                          style={{
+                            left: previewStartIndex * dayWidth + 7,
+                            width: previewWidth,
+                            top: 16 + Math.min(26, item.offsetHours * 3)
+                          }}
+                        >
+                          <strong>{preview.start}</strong>
+                          <span>至</span>
+                          <strong>{preview.end}</strong>
+                        </div>
+                      </>
+                    )}
+                    <button
+                      className={`task-bar ${item.overCapacity ? "is-over" : ""} ${item.unassigned ? "is-unassigned" : ""} ${activeGestureId === item.sourceId ? "is-moving" : ""}`}
+                      style={{
+                        left: (preview ? previewStartIndex : startIndex) * dayWidth + 7,
+                        width: preview ? previewWidth : width,
+                        background: STATUS_COLORS[item.status],
+                        top: 16 + Math.min(26, item.offsetHours * 3)
+                      }}
+                      onClick={() => onSelect(item)}
+                      onPointerDown={(event) => startGesture(event, item, "move")}
+                      title={`${item.name} / ${item.estimateHours}h`}
+                    >
+                      <span
+                        className="task-resize left"
+                        onPointerDown={(event) => startGesture(event, item, "start")}
+                      />
+                      <strong>{item.priority}</strong>
+                      <span>{item.name}</span>
+                      <small>{item.estimateHours}h</small>
+                      <span
+                        className="task-resize right"
+                        onPointerDown={(event) => startGesture(event, item, "end")}
+                      />
+                    </button>
+                  </div>
                 );
               })}
             </div>

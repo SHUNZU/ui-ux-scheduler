@@ -697,6 +697,7 @@ textarea {
   color: #ffffff;
   box-shadow: 0 8px 18px rgba(30, 41, 59, 0.16);
   cursor: pointer;
+  transition: left 120ms ease, width 120ms ease, filter 120ms ease, box-shadow 120ms ease;
 }
 
 .task-bar {
@@ -713,8 +714,80 @@ textarea {
 }
 
 .task-bar.is-moving {
-  outline: 2px solid rgba(23, 107, 255, 0.35);
+  z-index: 4;
+  outline: 2px solid rgba(23, 107, 255, 0.72);
   filter: brightness(1.04);
+  box-shadow: 0 12px 28px rgba(23, 107, 255, 0.32);
+}
+
+.task-ghost,
+.task-preview {
+  position: absolute;
+  height: 34px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.task-ghost {
+  z-index: 1;
+  border: 1px dashed #8a95a8;
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(138, 149, 168, 0.12) 0 6px,
+    rgba(138, 149, 168, 0.04) 6px 12px
+  );
+}
+
+.task-preview {
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 132px;
+  padding: 0 10px;
+  border: 1px solid rgba(23, 107, 255, 0.5);
+  color: #0f4fd6;
+  background: rgba(237, 244, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(23, 107, 255, 0.18);
+  font-size: 12px;
+  font-weight: 700;
+  transform: translateY(-40px);
+}
+
+.task-preview::after {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid rgba(23, 107, 255, 0.5);
+  border-bottom: 1px solid rgba(23, 107, 255, 0.5);
+  background: rgba(237, 244, 255, 0.96);
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.task-preview.start {
+  border-color: rgba(20, 164, 110, 0.58);
+  color: #08784f;
+  background: rgba(229, 248, 240, 0.96);
+}
+
+.task-preview.start::after {
+  border-color: rgba(20, 164, 110, 0.58);
+  background: rgba(229, 248, 240, 0.96);
+}
+
+.task-preview.end {
+  border-color: rgba(255, 176, 32, 0.68);
+  color: #8a5600;
+  background: rgba(255, 247, 230, 0.96);
+}
+
+.task-preview.end::after {
+  border-color: rgba(255, 176, 32, 0.68);
+  background: rgba(255, 247, 230, 0.96);
 }
 
 .task-bar span {
