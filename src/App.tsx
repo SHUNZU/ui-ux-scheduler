@@ -45,7 +45,6 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
-  const editKey = canEdit ? ADMIN_PASSWORD : "";
 
   useEffect(() => {
     void handleLoad();
@@ -138,7 +137,7 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const result = await triggerProjectSync(editKey);
+      const result = await triggerProjectSync(getEditKey());
       setRequirements(result.requirements);
       setSyncLabel(`已从飞书同步 ${result.requirements.length} 条设计需求，忽略 ${result.ignoredCount} 条非设计需求`);
     } catch (syncError) {
@@ -180,7 +179,7 @@ export default function App() {
       )
     );
     setSelected(updated);
-    void saveRequirementPatch(updated.sourceId, patch, editKey).then((cloudRequirements) => {
+    void saveRequirementPatch(updated.sourceId, patch, getEditKey()).then((cloudRequirements) => {
       if (cloudRequirements) {
         setRequirements(cloudRequirements);
         setSyncLabel("已保存到云端排期");
@@ -216,7 +215,7 @@ export default function App() {
     setSyncLabel(`已调整 ${patches.length} 条需求排序，正在保存`);
 
     void Promise.all(
-      patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, editKey))
+      patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, getEditKey()))
     ).then((results) => {
       const latest = [...results].reverse().find(Boolean);
       if (latest) {
@@ -263,7 +262,7 @@ export default function App() {
     setRequirements((current) => [...current, next]);
     setSyncLabel(`已新增 ${project} / 新需求，正在保存`);
 
-    const cloudRequirements = await createManualRequirement(next, editKey);
+    const cloudRequirements = await createManualRequirement(next, getEditKey());
     if (cloudRequirements) {
       setRequirements(cloudRequirements);
       setSyncLabel("已保存新增需求");
@@ -284,7 +283,7 @@ export default function App() {
     setSyncLabel(`已将 ${fromProject} 改名为 ${toProject}，正在保存`);
 
     void Promise.all(
-      affected.map((item) => saveRequirementPatch(item.sourceId, { project: toProject, manualOverride: true }, editKey))
+      affected.map((item) => saveRequirementPatch(item.sourceId, { project: toProject, manualOverride: true }, getEditKey()))
     ).then((results) => {
       const latest = [...results].reverse().find(Boolean);
       if (latest) {
@@ -310,7 +309,7 @@ export default function App() {
         return patch ? { ...item, sequence: patch.sequence, manualOverride: true } : item;
       })
     );
-    void Promise.all(patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, editKey)))
+    void Promise.all(patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, getEditKey())))
       .then((results) => {
         const latest = [...results].reverse().find(Boolean);
         if (latest) setRequirements(latest);
@@ -335,10 +334,24 @@ export default function App() {
   }
 
   function ensureEditAccess(): boolean {
-    if (canEdit) return true;
+    if (hasValidEditSession()) {
+      if (!canEdit) setCanEdit(true);
+      setAuthOpen(false);
+      setAuthError("");
+      return true;
+    }
+    if (canEdit) setCanEdit(false);
     setAuthOpen(true);
     setAuthError("");
     return false;
+  }
+
+  function getEditKey(): string {
+    if (hasValidEditSession()) return ADMIN_PASSWORD;
+    setCanEdit(false);
+    setAuthOpen(true);
+    setAuthError("编辑权限已过期，请重新输入管理员密码");
+    return "";
   }
 
   function handleUnlockEdit() {
@@ -358,7 +371,7 @@ export default function App() {
     if (!ensureEditAccess()) return;
     if (!window.confirm(`确定删除「${requirement.name}」吗？`)) return;
     setRequirements((current) => current.filter((item) => item.sourceId !== requirement.sourceId));
-    const cloudRequirements = await deleteCloudRequirement(requirement.sourceId, editKey);
+    const cloudRequirements = await deleteCloudRequirement(requirement.sourceId, getEditKey());
     if (cloudRequirements) {
       setRequirements(cloudRequirements);
       setSyncLabel("已删除该需求");
@@ -372,7 +385,7 @@ export default function App() {
     const rows = requirements.filter((item) => item.project === name);
     if (!window.confirm(`确定删除「${name}」表格及其 ${rows.length} 条需求吗？`)) return;
     setRequirements((current) => current.filter((item) => item.project !== name));
-    const results = await Promise.all(rows.map((item) => deleteCloudRequirement(item.sourceId, editKey)));
+    const results = await Promise.all(rows.map((item) => deleteCloudRequirement(item.sourceId, getEditKey())));
     const latest = [...results].reverse().find(Boolean);
     if (latest) setRequirements(latest);
     setActiveTab("gantt");
@@ -416,7 +429,7 @@ export default function App() {
           estimateHours: Number(estimateHours || 8),
           dueDate,
           note
-        }, editKey);
+        }, getEditKey());
       }
       await handleLoad();
       setSyncLabel(`已导入 ${name}`);
