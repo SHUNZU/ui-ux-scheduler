@@ -1090,7 +1090,9 @@ textarea {
   right: 16px;
   bottom: 16px;
   z-index: 10;
+  display: block;
   width: min(430px, calc(100vw - 32px));
+  background: transparent;
   pointer-events: none;
 }
 

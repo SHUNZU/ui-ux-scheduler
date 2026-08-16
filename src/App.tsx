@@ -112,6 +112,10 @@ export default function App() {
     () => filtered.filter((item) => (item.project || "需求表格") === activeTab),
     [filtered, activeTab]
   );
+  const selectedRequirement = useMemo(() => {
+    if (!selected) return null;
+    return scheduled.find((item) => item.sourceId === selected.sourceId) ?? null;
+  }, [selected, scheduled]);
 
   async function handleLoad() {
     setLoading(true);
@@ -507,7 +511,7 @@ export default function App() {
         </section>
       )}
 
-      <RequirementDrawer requirement={selected} canEdit={canEdit} onClose={() => setSelected(null)} onRequestEdit={ensureEditAccess} onUpdate={handleUpdateRequirement} />
+      <RequirementDrawer requirement={selectedRequirement} canEdit={canEdit} onClose={() => setSelected(null)} onRequestEdit={ensureEditAccess} onUpdate={handleUpdateRequirement} />
       {authOpen && (
         <div className="auth-backdrop" onClick={() => setAuthOpen(false)}>
           <form
