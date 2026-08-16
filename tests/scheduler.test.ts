@@ -153,7 +153,7 @@ describe("scheduleRequirements", () => {
     const manual = scheduled.find((item) => item.sourceId === "manual");
     expect(manual?.scheduledStart).toBe("2026-08-18");
     expect(manual?.scheduledEnd).toBe("2026-08-20");
-    expect(manual?.estimateHours).toBe(24);
+    expect(manual?.estimateHours).toBe(20);
   });
 
   it("only marks delay after the scheduled end has actually passed", () => {

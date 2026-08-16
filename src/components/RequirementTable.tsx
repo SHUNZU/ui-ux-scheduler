@@ -51,7 +51,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: "productOwner", label: "产品负责人", width: 150 },
   { id: "priority", label: "优先级", width: 110 },
   { id: "status", label: "状态", width: 120 },
-  { id: "estimate", label: "预估", width: 90 },
+  { id: "estimate", label: "预估(小时)", width: 100 },
   { id: "sequence", label: "顺序", width: 90 },
   { id: "rush", label: "插单", width: 90 },
   { id: "schedule", label: "排期", width: 220 },
@@ -329,12 +329,7 @@ export function RequirementTable({
       );
     }
     if (columnId === "estimate") {
-      return (
-        <span className="estimate-cell">
-          <input className="cell-number" type="number" min={1} max={240} value={item.estimateHours} onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }} onChange={(event) => patch(item, { estimateHours: Number(event.target.value) })} />
-          <span>小时</span>
-        </span>
-      );
+      return <input className="cell-number" type="number" min={1} max={240} value={item.estimateHours} onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }} onChange={(event) => patch(item, { estimateHours: Number(event.target.value) })} />;
     }
     if (columnId === "sequence") {
       return <input className="cell-number" type="number" min={0} max={999} value={item.sequence} onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }} onChange={(event) => patch(item, { sequence: Number(event.target.value) })} />;

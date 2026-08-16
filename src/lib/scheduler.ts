@@ -1,4 +1,4 @@
-import { addBusinessDaysIso, businessDayDiff, businessDaySpan, inclusiveDaySpan, todayIso } from "./date";
+import { addBusinessDaysIso, businessDayDiff, businessDaysBetween, inclusiveDaySpan, todayIso } from "./date";
 import { DAILY_CAPACITY_HOURS, PRIORITY_ORDER, UNASSIGNED_OWNER } from "./constants";
 import { DesignRequirement, OwnerLoad, ScheduledRequirement } from "../types";
 
@@ -52,9 +52,6 @@ function resolveScheduledEnd(requirement: DesignRequirement, start: string, dura
 }
 
 function resolveScheduledEstimate(requirement: DesignRequirement, start: string, end: string): number {
-  if (requirement.manualOverride && requirement.dueDate && requirement.dueDate >= start) {
-    return businessDaySpan(start, end) * DAILY_CAPACITY_HOURS;
-  }
   return requirement.estimateHours;
 }
 
@@ -63,30 +60,49 @@ function applyDailyAverageEstimates(
   baseDate: string
 ): DesignRequirement[] {
   const counts = new Map<string, number>();
+  const activeDays = new Map<string, string[]>();
 
   for (const requirement of requirements) {
     if (!shouldUseAverageEstimate(requirement)) continue;
-    const key = buildEstimateGroupKey(requirement, baseDate);
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const days = buildEstimateDays(requirement, baseDate);
+    activeDays.set(requirement.sourceId, days);
+    for (const day of days) {
+      const key = buildEstimateGroupKey(requirement, day);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
   }
 
   return requirements.map((requirement) => {
     if (!shouldUseAverageEstimate(requirement)) return requirement;
-    const count = counts.get(buildEstimateGroupKey(requirement, baseDate)) ?? 1;
+    const days = activeDays.get(requirement.sourceId) ?? buildEstimateDays(requirement, baseDate);
+    const estimateHours = days.reduce((sum, day) => {
+      const count = counts.get(buildEstimateGroupKey(requirement, day)) ?? 1;
+      return sum + DAILY_CAPACITY_HOURS / count;
+    }, 0);
     return {
       ...requirement,
-      estimateHours: roundHours(DAILY_CAPACITY_HOURS / count)
+      estimateHours: roundHours(estimateHours)
     };
   });
 }
 
 function shouldUseAverageEstimate(requirement: DesignRequirement): boolean {
-  return requirement.estimateHours === DAILY_CAPACITY_HOURS;
+  return requirement.estimateHours === DAILY_CAPACITY_HOURS || hasManualDateRange(requirement);
 }
 
-function buildEstimateGroupKey(requirement: DesignRequirement, baseDate: string): string {
+function hasManualDateRange(requirement: DesignRequirement): boolean {
+  return Boolean(requirement.manualOverride && requirement.startDate && requirement.dueDate && requirement.dueDate >= requirement.startDate);
+}
+
+function buildEstimateDays(requirement: DesignRequirement, baseDate: string): string[] {
+  if (hasManualDateRange(requirement)) {
+    return businessDaysBetween(requirement.startDate as string, requirement.dueDate as string);
+  }
+  return [requirement.startDate || requirement.autoScheduledDate || baseDate];
+}
+
+function buildEstimateGroupKey(requirement: DesignRequirement, date: string): string {
   const owner = requirement.owner || UNASSIGNED_OWNER;
-  const date = requirement.startDate || requirement.autoScheduledDate || baseDate;
   return `${owner}:${date}`;
 }
 

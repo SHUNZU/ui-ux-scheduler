@@ -45,38 +45,54 @@ function resolveScheduledEnd(requirement, start, durationDays) {
 }
 
 function resolveScheduledEstimate(requirement, start, end) {
-  if (requirement.manualOverride && requirement.dueDate && requirement.dueDate >= start) {
-    return businessDaySpan(start, end) * DAILY_CAPACITY_HOURS;
-  }
   return requirement.estimateHours;
 }
 
 function applyDailyAverageEstimates(requirements, baseDate) {
   const counts = new Map();
+  const activeDays = new Map();
 
   for (const requirement of requirements) {
     if (!shouldUseAverageEstimate(requirement)) continue;
-    const key = buildEstimateGroupKey(requirement, baseDate);
-    counts.set(key, (counts.get(key) || 0) + 1);
+    const days = buildEstimateDays(requirement, baseDate);
+    activeDays.set(requirement.sourceId, days);
+    for (const day of days) {
+      const key = buildEstimateGroupKey(requirement, day);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
   }
 
   return requirements.map((requirement) => {
     if (!shouldUseAverageEstimate(requirement)) return requirement;
-    const count = counts.get(buildEstimateGroupKey(requirement, baseDate)) || 1;
+    const days = activeDays.get(requirement.sourceId) || buildEstimateDays(requirement, baseDate);
+    const estimateHours = days.reduce((sum, day) => {
+      const count = counts.get(buildEstimateGroupKey(requirement, day)) || 1;
+      return sum + DAILY_CAPACITY_HOURS / count;
+    }, 0);
     return {
       ...requirement,
-      estimateHours: roundHours(DAILY_CAPACITY_HOURS / count)
+      estimateHours: roundHours(estimateHours)
     };
   });
 }
 
 function shouldUseAverageEstimate(requirement) {
-  return requirement.estimateHours === DAILY_CAPACITY_HOURS;
+  return requirement.estimateHours === DAILY_CAPACITY_HOURS || hasManualDateRange(requirement);
 }
 
-function buildEstimateGroupKey(requirement, baseDate) {
+function hasManualDateRange(requirement) {
+  return Boolean(requirement.manualOverride && requirement.startDate && requirement.dueDate && requirement.dueDate >= requirement.startDate);
+}
+
+function buildEstimateDays(requirement, baseDate) {
+  if (hasManualDateRange(requirement)) {
+    return businessDaysBetween(requirement.startDate, requirement.dueDate);
+  }
+  return [requirement.startDate || requirement.autoScheduledDate || baseDate];
+}
+
+function buildEstimateGroupKey(requirement, date) {
   const owner = requirement.owner || UNASSIGNED_OWNER;
-  const date = requirement.startDate || requirement.autoScheduledDate || baseDate;
   return `${owner}:${date}`;
 }
 
@@ -195,6 +211,19 @@ function businessDaySpan(start, end) {
   }
 
   return Math.max(1, count);
+}
+
+function businessDaysBetween(start, end) {
+  const cursor = parseIsoDate(start);
+  const last = parseIsoDate(end);
+  const days = [];
+
+  while (cursor <= last) {
+    if (!isWeekend(cursor)) days.push(toIsoDate(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return days.length > 0 ? days : [start];
 }
 
 function calculateDelay(scheduledEnd, baseDate, status) {

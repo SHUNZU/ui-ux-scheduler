@@ -61,6 +61,19 @@ export function businessDaySpan(start: string, end: string): number {
   return Math.max(1, count);
 }
 
+export function businessDaysBetween(start: string, end: string): string[] {
+  const days: string[] = [];
+  let cursor = parseISO(start);
+  const last = parseISO(end);
+
+  while (!isBefore(last, cursor)) {
+    if (!isWeekend(cursor)) days.push(toIsoDate(cursor));
+    cursor = addDays(cursor, 1);
+  }
+
+  return days.length > 0 ? days : [start];
+}
+
 function isWeekend(date: Date): boolean {
   const day = date.getDay();
   return day === 0 || day === 6;
