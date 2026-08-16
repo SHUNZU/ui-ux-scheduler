@@ -16,11 +16,13 @@ function scheduleRequirements(requirements, baseDate = todayIso()) {
     const durationDays = Math.max(1, Math.ceil(requirement.estimateHours / DAILY_CAPACITY_HOURS));
     const start = hasManualSchedule ? preferredStart : findAvailableStart(ownerLane, preferredStart, requirement.estimateHours, loads);
     const end = resolveScheduledEnd(requirement, start, durationDays);
+    const estimateHours = resolveScheduledEstimate(requirement, start, end);
     const offsetHours = (loads[ownerLane] && loads[ownerLane][start]) || 0;
-    const overCapacity = allocate(ownerLane, start, requirement.estimateHours, loads);
+    const overCapacity = allocate(ownerLane, start, estimateHours, loads);
 
     return {
       ...requirement,
+      estimateHours,
       autoScheduledDate: start,
       ownerLane,
       scheduledStart: start,
@@ -40,6 +42,13 @@ function resolveScheduledEnd(requirement, start, durationDays) {
     return requirement.dueDate;
   }
   return addBusinessDaysIso(start, durationDays - 1);
+}
+
+function resolveScheduledEstimate(requirement, start, end) {
+  if (requirement.manualOverride && requirement.dueDate && requirement.dueDate >= start) {
+    return businessDaySpan(start, end) * DAILY_CAPACITY_HOURS;
+  }
+  return requirement.estimateHours;
 }
 
 function applyDailyAverageEstimates(requirements, baseDate) {
@@ -173,6 +182,19 @@ function businessDayDiff(start, end) {
   }
 
   return count;
+}
+
+function businessDaySpan(start, end) {
+  const cursor = parseIsoDate(start);
+  const last = parseIsoDate(end);
+  let count = 0;
+
+  while (cursor <= last) {
+    if (!isWeekend(cursor)) count += 1;
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  return Math.max(1, count);
 }
 
 function calculateDelay(scheduledEnd, baseDate, status) {

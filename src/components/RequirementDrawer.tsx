@@ -1,6 +1,6 @@
 import { ExternalLink, X } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
-import { todayIso } from "../lib/date";
+import { businessDaySpan, todayIso } from "../lib/date";
 import { ScheduledRequirement } from "../types";
 
 interface RequirementDrawerProps {
@@ -28,6 +28,14 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit
   };
   const requestIfLocked = () => {
     if (!canEdit) onRequestEdit();
+  };
+  const patchSchedule = (partial: { startDate?: string; dueDate?: string }) => {
+    const start = partial.startDate ?? requirement.scheduledStart;
+    const end = partial.dueDate ?? requirement.scheduledEnd;
+    patch({
+      ...partial,
+      estimateHours: end >= start ? businessDaySpan(start, end) * 8 : requirement.estimateHours
+    });
   };
 
   return (
@@ -106,7 +114,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit
               type="date"
               value={requirement.scheduledStart}
               onFocus={requestIfLocked}
-              onChange={(event) => patch({ startDate: event.target.value })}
+              onChange={(event) => patchSchedule({ startDate: event.target.value })}
             />
           </label>
           <label>
@@ -115,7 +123,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit
               type="date"
               value={requirement.scheduledEnd}
               onFocus={requestIfLocked}
-              onChange={(event) => patch({ dueDate: event.target.value })}
+              onChange={(event) => patchSchedule({ dueDate: event.target.value })}
             />
           </label>
           <label className="check-label">

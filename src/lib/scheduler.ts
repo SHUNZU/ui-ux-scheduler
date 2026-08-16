@@ -1,4 +1,4 @@
-import { addBusinessDaysIso, businessDayDiff, inclusiveDaySpan, todayIso } from "./date";
+import { addBusinessDaysIso, businessDayDiff, businessDaySpan, inclusiveDaySpan, todayIso } from "./date";
 import { DAILY_CAPACITY_HOURS, PRIORITY_ORDER, UNASSIGNED_OWNER } from "./constants";
 import { DesignRequirement, OwnerLoad, ScheduledRequirement } from "../types";
 
@@ -22,12 +22,14 @@ export function scheduleRequirements(
     const durationDays = Math.max(1, Math.ceil(requirement.estimateHours / DAILY_CAPACITY_HOURS));
     const start = hasManualSchedule ? preferredStart : findAvailableStart(ownerLane, preferredStart, requirement.estimateHours, loads);
     const end = resolveScheduledEnd(requirement, start, durationDays);
+    const estimateHours = resolveScheduledEstimate(requirement, start, end);
     const offsetHours = loads[ownerLane]?.[start] ?? 0;
 
-    const overCapacity = allocate(ownerLane, start, requirement.estimateHours, loads);
+    const overCapacity = allocate(ownerLane, start, estimateHours, loads);
 
     return {
       ...requirement,
+      estimateHours,
       autoScheduledDate: start,
       ownerLane,
       scheduledStart: start,
@@ -47,6 +49,13 @@ function resolveScheduledEnd(requirement: DesignRequirement, start: string, dura
     return requirement.dueDate;
   }
   return addBusinessDaysIso(start, durationDays - 1);
+}
+
+function resolveScheduledEstimate(requirement: DesignRequirement, start: string, end: string): number {
+  if (requirement.manualOverride && requirement.dueDate && requirement.dueDate >= start) {
+    return businessDaySpan(start, end) * DAILY_CAPACITY_HOURS;
+  }
+  return requirement.estimateHours;
 }
 
 function applyDailyAverageEstimates(

@@ -998,6 +998,20 @@ textarea {
   padding: 0 6px;
 }
 
+.estimate-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #526078;
+  font-size: 12px;
+}
+
+.estimate-cell .cell-number {
+  width: 54px;
+  color: #172033;
+  font-size: 14px;
+}
+
 .person-cell select:hover,
 .cell-select:hover,
 .cell-number:hover,

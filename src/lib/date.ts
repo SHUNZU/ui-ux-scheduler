@@ -48,6 +48,19 @@ export function businessDayDiff(start: string, end: string): number {
   return count;
 }
 
+export function businessDaySpan(start: string, end: string): number {
+  let cursor = parseISO(start);
+  const last = parseISO(end);
+  let count = 0;
+
+  while (!isBefore(last, cursor)) {
+    if (!isWeekend(cursor)) count += 1;
+    cursor = addDays(cursor, 1);
+  }
+
+  return Math.max(1, count);
+}
+
 function isWeekend(date: Date): boolean {
   const day = date.getDay();
   return day === 0 || day === 6;

@@ -329,7 +329,12 @@ export function RequirementTable({
       );
     }
     if (columnId === "estimate") {
-      return <input className="cell-number" type="number" min={1} max={80} value={item.estimateHours} onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }} onChange={(event) => patch(item, { estimateHours: Number(event.target.value) })} />;
+      return (
+        <span className="estimate-cell">
+          <input className="cell-number" type="number" min={1} max={240} value={item.estimateHours} onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }} onChange={(event) => patch(item, { estimateHours: Number(event.target.value) })} />
+          <span>小时</span>
+        </span>
+      );
     }
     if (columnId === "sequence") {
       return <input className="cell-number" type="number" min={0} max={999} value={item.sequence} onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }} onChange={(event) => patch(item, { sequence: Number(event.target.value) })} />;
