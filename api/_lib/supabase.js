@@ -89,7 +89,7 @@ function toDbRow(item) {
     owner: item.owner,
     priority: item.priority,
     status: item.status,
-    estimate_hours: item.estimateHours,
+    estimate_hours: toDbEstimateHours(item.estimateHours),
     sequence: item.sequence,
     is_rush: item.isRush,
     rush_reason: item.rushReason || null,
@@ -133,12 +133,17 @@ function toDbPatch(patch) {
 
   for (const [key, dbKey] of Object.entries(map)) {
     if (Object.prototype.hasOwnProperty.call(patch, key)) {
-      row[dbKey] = patch[key];
+      row[dbKey] = dbKey === "estimate_hours" ? toDbEstimateHours(patch[key]) : patch[key];
     }
   }
 
   row.updated_at = new Date().toISOString();
   return row;
+}
+
+function toDbEstimateHours(value) {
+  const hours = Number(value || 8);
+  return Math.max(1, Math.round(hours));
 }
 
 function fromDbRow(row) {
