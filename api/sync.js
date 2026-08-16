@@ -47,9 +47,13 @@ module.exports = async function handler(req, res) {
 };
 
 function findLegacyLinkDuplicates(existing, incoming) {
+  const incomingSourceIds = new Set(incoming.map((item) => item.sourceId));
   const incomingRecordIds = new Set(incoming.map((item) => recordIdFromSourceId(item.sourceId)).filter(Boolean));
   return existing
-    .filter((item) => item.sourceId.startsWith("飞书链接同步:") && incomingRecordIds.has(recordIdFromSourceId(item.sourceId)))
+    .filter((item) => {
+      const legacySource = item.sourceId.startsWith("飞书链接同步:") || item.sourceId.startsWith("项目需求表:");
+      return legacySource && !incomingSourceIds.has(item.sourceId) && incomingRecordIds.has(recordIdFromSourceId(item.sourceId));
+    })
     .map((item) => item.sourceId);
 }
 

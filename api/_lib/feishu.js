@@ -25,7 +25,7 @@ function parseSourceUrl(sourceUrl) {
   }
 
   return {
-    name: "项目需求表",
+    name: `飞书:${appToken}:${tableId}`,
     appToken,
     tableId,
     viewId,
