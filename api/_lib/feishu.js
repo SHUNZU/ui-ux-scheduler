@@ -28,8 +28,7 @@ function parseSourceUrl(sourceUrl) {
     appToken,
     tableId,
     viewId,
-    useView: Boolean(viewId),
-    tableName: "飞书需求表"
+    useView: Boolean(viewId)
   };
 }
 
@@ -157,7 +156,7 @@ function mapBitableRecord(source, record) {
     return fallback;
   };
   const title = get("title", "", ["需求", "需求名称", "需求名", "名称", "标题"]) || record.record_id;
-  const project = get("project", "", ["项目", "项目名称", "所属项目"]) || source.tableName || "未归属项目";
+  const project = get("project", "", ["项目", "项目名称", "项目标签", "所属项目", "所属项目标签"]) || "未归属项目";
   const productOwner = get("productOwner", "", ["产品人员", "产品负责人", "产品", "需求负责人"]);
   const designOwner = get("designOwner", "", ["设计人员", "设计负责人", "当前负责人", "负责人", "owner"]);
   const startDate = normalizeDate(get("startDate", "", ["开始时间", "开始日期", "排期开始"]));
@@ -202,7 +201,14 @@ function readField(value, fallback = "") {
   }
   if (typeof value === "object") {
     if (Object.prototype.hasOwnProperty.call(value, "value")) return readField(value.value, fallback);
-    return value.name || value.text || value.en_name || value.email || value.id || JSON.stringify(value);
+    if (Object.prototype.hasOwnProperty.call(value, "text")) return readField(value.text, fallback);
+    if (Object.prototype.hasOwnProperty.call(value, "name")) return readField(value.name, fallback);
+    if (Object.prototype.hasOwnProperty.call(value, "en_name")) return readField(value.en_name, fallback);
+    if (Object.prototype.hasOwnProperty.call(value, "link")) return readField(value.text || value.link, fallback);
+    if (Object.prototype.hasOwnProperty.call(value, "email")) return readField(value.email, fallback);
+    if (Object.prototype.hasOwnProperty.call(value, "title")) return readField(value.title, fallback);
+    if (Object.prototype.hasOwnProperty.call(value, "url")) return readField(value.url, fallback);
+    return fallback;
   }
   return String(value);
 }
