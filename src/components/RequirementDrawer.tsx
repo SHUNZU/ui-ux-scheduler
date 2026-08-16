@@ -7,10 +7,11 @@ interface RequirementDrawerProps {
   requirement: ScheduledRequirement | null;
   canEdit: boolean;
   onClose: () => void;
+  onRequestEdit: () => void;
   onUpdate: (requirement: ScheduledRequirement) => void;
 }
 
-export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: RequirementDrawerProps) {
+export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit, onUpdate }: RequirementDrawerProps) {
   if (!requirement) return null;
   const today = todayIso();
   const isOverdue = requirement.scheduledEnd < today && requirement.status !== "已完成";
@@ -19,8 +20,14 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
     : "无影响";
 
   const patch = (partial: Partial<ScheduledRequirement>) => {
-    if (!canEdit) return;
+    if (!canEdit) {
+      onRequestEdit();
+      return;
+    }
     onUpdate({ ...requirement, ...partial, manualOverride: true });
+  };
+  const requestIfLocked = () => {
+    if (!canEdit) onRequestEdit();
   };
 
   return (
@@ -41,23 +48,23 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
         <div className="form-grid">
           <label className="wide-label">
             需求名称
-            <input value={requirement.name} disabled={!canEdit} onChange={(event) => patch({ name: event.target.value })} />
+            <input value={requirement.name} onFocus={requestIfLocked} onChange={(event) => patch({ name: event.target.value })} />
           </label>
           <label>
             设计负责人
-            <input value={requirement.owner} disabled={!canEdit} onChange={(event) => patch({ owner: event.target.value })} />
+            <input value={requirement.owner} onFocus={requestIfLocked} onChange={(event) => patch({ owner: event.target.value })} />
           </label>
           <label>
             产品负责人
             <input
               value={requirement.productOwner || requirement.requester}
-              disabled={!canEdit}
+              onFocus={requestIfLocked}
               onChange={(event) => patch({ productOwner: event.target.value, requester: event.target.value })}
             />
           </label>
           <label>
             状态
-            <select value={requirement.status} disabled={!canEdit} onChange={(event) => patch({ status: event.target.value as ScheduledRequirement["status"] })}>
+            <select value={requirement.status} onClick={requestIfLocked} onChange={(event) => patch({ status: event.target.value as ScheduledRequirement["status"] })}>
               {STATUS_OPTIONS.map((status) => (
                 <option key={status} value={status}>{status}</option>
               ))}
@@ -65,7 +72,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
           </label>
           <label>
             优先级
-            <select value={requirement.priority} disabled={!canEdit} onChange={(event) => patch({ priority: event.target.value as ScheduledRequirement["priority"] })}>
+            <select value={requirement.priority} onClick={requestIfLocked} onChange={(event) => patch({ priority: event.target.value as ScheduledRequirement["priority"] })}>
               {PRIORITY_OPTIONS.map((priority) => (
                 <option key={priority} value={priority}>{priority}</option>
               ))}
@@ -78,7 +85,7 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
               min={1}
               max={80}
               value={requirement.estimateHours}
-              disabled={!canEdit}
+              onFocus={requestIfLocked}
               onChange={(event) => patch({ estimateHours: Number(event.target.value) })}
             />
           </label>
@@ -89,23 +96,23 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
               min={0}
               max={999}
               value={requirement.sequence}
-              disabled={!canEdit}
+              onFocus={requestIfLocked}
               onChange={(event) => patch({ sequence: Number(event.target.value) })}
             />
           </label>
           <label>
             开始日期
-            <input type="date" value={requirement.startDate ?? requirement.scheduledStart} disabled={!canEdit} onChange={(event) => patch({ startDate: event.target.value })} />
+            <input type="date" value={requirement.startDate ?? requirement.scheduledStart} onFocus={requestIfLocked} onChange={(event) => patch({ startDate: event.target.value })} />
           </label>
           <label>
             截止日期
-            <input type="date" value={requirement.dueDate ?? ""} disabled={!canEdit} onChange={(event) => patch({ dueDate: event.target.value })} />
+            <input type="date" value={requirement.dueDate ?? ""} onFocus={requestIfLocked} onChange={(event) => patch({ dueDate: event.target.value })} />
           </label>
           <label className="check-label">
             <input
               type="checkbox"
               checked={requirement.isRush}
-              disabled={!canEdit}
+              onClick={requestIfLocked}
               onChange={(event) => patch({ isRush: event.target.checked })}
             />
             插单
@@ -114,15 +121,15 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onUpdate }: R
 
         <label className="stacked-label">
           插单原因
-          <textarea value={requirement.rushReason ?? ""} disabled={!canEdit} onChange={(event) => patch({ rushReason: event.target.value })} />
+          <textarea value={requirement.rushReason ?? ""} onFocus={requestIfLocked} onChange={(event) => patch({ rushReason: event.target.value })} />
         </label>
         <label className="stacked-label">
           阻塞原因
-          <textarea value={requirement.blockedReason ?? ""} disabled={!canEdit} onChange={(event) => patch({ blockedReason: event.target.value })} />
+          <textarea value={requirement.blockedReason ?? ""} onFocus={requestIfLocked} onChange={(event) => patch({ blockedReason: event.target.value })} />
         </label>
         <label className="stacked-label">
           备注
-          <textarea value={requirement.note ?? ""} disabled={!canEdit} onChange={(event) => patch({ note: event.target.value })} />
+          <textarea value={requirement.note ?? ""} onFocus={requestIfLocked} onChange={(event) => patch({ note: event.target.value })} />
         </label>
 
         <dl className="detail-list">

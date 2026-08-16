@@ -1,4 +1,5 @@
 const { fetchFeishuWorkItems } = require("./_lib/feishu");
+const { hasEditAccess } = require("./_lib/auth");
 const { isDesignWorkItem, normalizeWorkItem } = require("./_lib/normalize");
 const { scheduleRequirements } = require("./_lib/scheduler");
 const { fromDbRow, listRequirements, upsertRequirements } = require("./_lib/supabase");
@@ -9,8 +10,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const syncSecret = process.env.SYNC_SECRET || process.env.EDIT_KEY;
-  if (syncSecret && req.headers.authorization !== `Bearer ${syncSecret}`) {
+  if (!hasEditAccess(req)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

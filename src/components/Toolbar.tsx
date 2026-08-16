@@ -9,6 +9,7 @@ interface ToolbarProps {
   syncLabel: string;
   loading: boolean;
   canEdit: boolean;
+  onRequestEdit: () => void;
   onChange: (filters: Filters) => void;
   onSync: () => void;
   onReschedule: () => void;
@@ -21,6 +22,7 @@ export function Toolbar({
   syncLabel,
   loading,
   canEdit,
+  onRequestEdit,
   onChange,
   onSync,
   onReschedule
@@ -37,15 +39,15 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-actions">
-        <span className={`mode-badge ${canEdit ? "edit" : "readonly"}`}>
+        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
           {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
-          {canEdit ? "编辑模式" : "只读模式"}
-        </span>
-        <button className="primary-button" onClick={onSync} disabled={loading || !canEdit} title={canEdit ? "重新同步飞书项目需求" : "只读模式不可同步"}>
+          编辑
+        </button>
+        <button className="primary-button" onClick={onSync} disabled={loading} title={canEdit ? "重新同步飞书项目需求" : "输入管理员密码后同步"}>
           <RefreshCcw size={16} />
           {loading ? "同步中" : "重新同步"}
         </button>
-        <button className="ghost-button" onClick={onReschedule} disabled={!canEdit} title={canEdit ? "按优先级重新自动排期" : "只读模式不可重新排期"}>
+        <button className="ghost-button" onClick={onReschedule} title={canEdit ? "按优先级重新自动排期" : "输入管理员密码后重新排期"}>
           <WandSparkles size={16} />
           重新排期
         </button>

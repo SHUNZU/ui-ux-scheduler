@@ -1,4 +1,5 @@
 const { scheduleRequirements } = require("./_lib/scheduler");
+const { hasEditAccess } = require("./_lib/auth");
 const { deleteRequirement, fromDbRow, listRequirements } = require("./_lib/supabase");
 
 module.exports = async function handler(req, res) {
@@ -23,9 +24,3 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 };
-
-function hasEditAccess(req) {
-  const editKey = process.env.EDIT_KEY || process.env.SYNC_SECRET;
-  if (!editKey) return false;
-  return req.headers.authorization === `Bearer ${editKey}`;
-}

@@ -304,6 +304,10 @@ textarea {
   font-weight: 700;
 }
 
+.mode-badge {
+  cursor: pointer;
+}
+
 .mode-badge.readonly,
 .drawer-mode.readonly {
   color: #526078;
@@ -763,6 +767,7 @@ textarea {
 .data-table {
   width: 100%;
   min-width: 1320px;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -775,6 +780,8 @@ textarea {
   border-right: 1px solid #edf1f6;
   text-align: left;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .data-table .drag-head,
@@ -798,6 +805,39 @@ textarea {
   color: #657188;
   background: #fbfcff;
   font-weight: 700;
+}
+
+.data-table th.reorderable-column {
+  position: sticky;
+  cursor: grab;
+  user-select: none;
+}
+
+.data-table th.reorderable-column:active {
+  cursor: grabbing;
+}
+
+.column-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+.column-resizer::after {
+  position: absolute;
+  top: 10px;
+  right: 3px;
+  width: 1px;
+  height: 24px;
+  background: #d7dfeb;
+  content: "";
+}
+
+.column-resizer:hover::after {
+  background: #2f6df6;
 }
 
 .data-table tbody tr {
@@ -1051,6 +1091,55 @@ textarea {
   display: flex;
   justify-content: flex-end;
   background: rgba(15, 23, 42, 0.22);
+}
+
+.auth-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.auth-dialog {
+  display: grid;
+  gap: 12px;
+  width: min(360px, calc(100vw - 32px));
+  padding: 22px;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
+}
+
+.auth-dialog h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.auth-dialog p {
+  margin: 0;
+  color: #657188;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.auth-dialog input {
+  height: 38px;
+  border: 1px solid #d7dfeb;
+  border-radius: 6px;
+  padding: 0 10px;
+}
+
+.auth-error {
+  color: #b42318;
+  font-size: 12px;
+}
+
+.auth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .drawer {

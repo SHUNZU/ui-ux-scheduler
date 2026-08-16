@@ -27,6 +27,9 @@ const initialFilters: Filters = {
   rushOnly: false,
   delayedOnly: false
 };
+const ADMIN_PASSWORD = "admin";
+const EDIT_SESSION_KEY = "uiux-scheduler-edit-session";
+const EDIT_SESSION_DAYS = 7;
 
 export default function App() {
   const [requirements, setRequirements] = useState<DesignRequirement[]>([]);
@@ -38,8 +41,11 @@ export default function App() {
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
   const [activeTab, setActiveTab] = useState("gantt");
   const [ganttScale, setGanttScale] = useState<"week" | "month" | "quarter">("week");
-  const editKey = useMemo(() => new URLSearchParams(window.location.search).get("edit_key")?.trim() ?? "", []);
-  const canEdit = editKey.length > 0;
+  const [canEdit, setCanEdit] = useState(() => hasValidEditSession());
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authPassword, setAuthPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  const editKey = canEdit ? ADMIN_PASSWORD : "";
 
   useEffect(() => {
     void handleLoad();
@@ -124,7 +130,7 @@ export default function App() {
   }
 
   async function handleSync() {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     setLoading(true);
     setError("");
     try {
@@ -140,7 +146,7 @@ export default function App() {
   }
 
   function handleUpdateRequirement(updated: ScheduledRequirement) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     const patch: Partial<DesignRequirement> = {
       name: updated.name,
       owner: updated.owner,
@@ -175,13 +181,13 @@ export default function App() {
         setRequirements(cloudRequirements);
         setSyncLabel("已保存到云端排期");
       } else {
-        setError("保存失败：当前链接没有编辑权限或编辑密钥不正确");
+        setError("保存失败：请确认管理员密码已解锁");
       }
     });
   }
 
   function handleReorderRequirements(reorderedVisible: ScheduledRequirement[]) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
 
     const visibleIds = new Set(reorderedVisible.map((item) => item.sourceId));
     const visibleQueue = [...reorderedVisible];
@@ -219,7 +225,7 @@ export default function App() {
   }
 
   async function handleAddTable() {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     const projectName = window.prompt("请输入需求表格名称", `需求表格 ${tableNames.length + 1}`)?.trim();
     if (!projectName) return;
     await handleAddRequirement(projectName);
@@ -227,7 +233,7 @@ export default function App() {
   }
 
   async function handleAddRequirement(project: string, sequence?: number) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     const maxSequence = requirements.reduce((max, item) => Math.max(max, item.sequence), 0);
     const createdAt = new Date().toISOString();
     const sourceId = `MANUAL-${Date.now()}`;
@@ -258,12 +264,12 @@ export default function App() {
       setRequirements(cloudRequirements);
       setSyncLabel("已保存新增需求");
     } else {
-      setError("新增需求失败：当前链接没有编辑权限或编辑密钥不正确");
+      setError("新增需求失败：请确认管理员密码已解锁");
     }
   }
 
   function handleRenameProject(fromProject: string, toProject: string) {
-    if (!canEdit || !fromProject || !toProject || fromProject === toProject) return;
+    if (!ensureEditAccess() || !fromProject || !toProject || fromProject === toProject) return;
     const affected = requirements.filter((item) => item.project === fromProject);
     if (affected.length === 0) return;
 
@@ -287,7 +293,7 @@ export default function App() {
   }
 
   function handleReorderTables(nextNames: string[]) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     const orderedRows = nextNames.flatMap((name) =>
       requirements
         .filter((item) => (item.project || "需求表格") === name)
@@ -324,8 +330,28 @@ export default function App() {
     setSyncLabel("已复制该需求分享链接");
   }
 
+  function ensureEditAccess(): boolean {
+    if (canEdit) return true;
+    setAuthOpen(true);
+    setAuthError("");
+    return false;
+  }
+
+  function handleUnlockEdit() {
+    if (authPassword.trim() !== ADMIN_PASSWORD) {
+      setAuthError("管理员密码不正确");
+      return;
+    }
+    const expiresAt = Date.now() + EDIT_SESSION_DAYS * 24 * 60 * 60 * 1000;
+    window.localStorage.setItem(EDIT_SESSION_KEY, String(expiresAt));
+    setCanEdit(true);
+    setAuthOpen(false);
+    setAuthPassword("");
+    setAuthError("");
+  }
+
   async function handleDeleteRow(requirement: ScheduledRequirement) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     if (!window.confirm(`确定删除「${requirement.name}」吗？`)) return;
     setRequirements((current) => current.filter((item) => item.sourceId !== requirement.sourceId));
     const cloudRequirements = await deleteCloudRequirement(requirement.sourceId, editKey);
@@ -333,12 +359,12 @@ export default function App() {
       setRequirements(cloudRequirements);
       setSyncLabel("已删除该需求");
     } else {
-      setError("删除失败：当前链接没有编辑权限或编辑密钥不正确");
+      setError("删除失败：请确认管理员密码已解锁");
     }
   }
 
   async function handleDeleteTable(name: string) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     const rows = requirements.filter((item) => item.project === name);
     if (!window.confirm(`确定删除「${name}」表格及其 ${rows.length} 条需求吗？`)) return;
     setRequirements((current) => current.filter((item) => item.project !== name));
@@ -363,7 +389,7 @@ export default function App() {
   }
 
   function handleImportTable(name: string) {
-    if (!canEdit) return;
+    if (!ensureEditAccess()) return;
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv,text/csv";
@@ -407,10 +433,11 @@ export default function App() {
         syncLabel={syncLabel}
         loading={loading}
         canEdit={canEdit}
+        onRequestEdit={ensureEditAccess}
         onChange={setFilters}
         onSync={handleSync}
         onReschedule={() => {
-          if (canEdit) setScheduleSeed(todayIso());
+          if (ensureEditAccess()) setScheduleSeed(todayIso());
         }}
       />
 
@@ -462,13 +489,14 @@ export default function App() {
       {activeTab !== "gantt" && (
         <section className="single-table-shell">
           <div className="table-command-bar">
-            <button className="primary-button" onClick={() => handleAddRequirement(activeTab)} disabled={!canEdit}>+ 添加记录</button>
+            <button className="primary-button" onClick={() => handleAddRequirement(activeTab)}>+ 添加记录</button>
           </div>
           <RequirementTable
             requirements={activeTableRequirements}
             designOwners={owners}
             productOwners={productOwners}
             canEdit={canEdit}
+            onRequestEdit={ensureEditAccess}
             onSelect={setSelected}
             onUpdate={handleUpdateRequirement}
             onReorder={handleReorderRequirements}
@@ -479,9 +507,41 @@ export default function App() {
         </section>
       )}
 
-      <RequirementDrawer requirement={selected} canEdit={canEdit} onClose={() => setSelected(null)} onUpdate={handleUpdateRequirement} />
+      <RequirementDrawer requirement={selected} canEdit={canEdit} onClose={() => setSelected(null)} onRequestEdit={ensureEditAccess} onUpdate={handleUpdateRequirement} />
+      {authOpen && (
+        <div className="auth-backdrop" onClick={() => setAuthOpen(false)}>
+          <form
+            className="auth-dialog"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleUnlockEdit();
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2>输入管理员密码</h2>
+            <p>解锁后可以编辑需求、同步飞书、调整排期。有效期 7 天。</p>
+            <input
+              type="password"
+              value={authPassword}
+              autoFocus
+              placeholder="管理员密码"
+              onChange={(event) => setAuthPassword(event.target.value)}
+            />
+            {authError && <span className="auth-error">{authError}</span>}
+            <div className="auth-actions">
+              <button type="button" className="ghost-button" onClick={() => setAuthOpen(false)}>取消</button>
+              <button type="submit" className="primary-button">确认</button>
+            </div>
+          </form>
+        </div>
+      )}
     </main>
   );
+}
+
+function hasValidEditSession(): boolean {
+  const expiresAt = Number(window.localStorage.getItem(EDIT_SESSION_KEY) || 0);
+  return expiresAt > Date.now();
 }
 
 function csvCell(value: string): string {
