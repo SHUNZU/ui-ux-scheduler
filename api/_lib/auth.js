@@ -1,5 +1,6 @@
 function hasEditAccess(req) {
   const accepted = [
+    "admin",
     process.env.ADMIN_PASSWORD || "admin",
     process.env.EDIT_KEY,
     process.env.SYNC_SECRET

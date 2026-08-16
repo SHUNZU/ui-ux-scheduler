@@ -437,7 +437,7 @@ export default function App() {
     input.click();
   }
 
-  const totalHours = filtered.reduce((sum, item) => sum + item.estimateHours, 0);
+  const totalHours = Math.round(filtered.reduce((sum, item) => sum + item.estimateHours, 0) * 10) / 10;
   const blockedCount = filtered.filter((item) => item.status === "阻塞").length;
   const overloadCount = filtered.filter((item) => item.overCapacity).length;
 
