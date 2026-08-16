@@ -1,6 +1,16 @@
 const DAILY_CAPACITY_HOURS = 8;
 const UNASSIGNED_OWNER = "待分配";
 const PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, P3: 3 };
+const HOLIDAYS = new Set([
+  "2026-01-01", "2026-01-02", "2026-01-03",
+  "2026-02-15", "2026-02-16", "2026-02-17", "2026-02-18", "2026-02-19", "2026-02-20", "2026-02-21", "2026-02-22", "2026-02-23",
+  "2026-04-04", "2026-04-05", "2026-04-06",
+  "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05",
+  "2026-06-19", "2026-06-20", "2026-06-21",
+  "2026-09-25", "2026-09-26", "2026-09-27",
+  "2026-10-01", "2026-10-02", "2026-10-03", "2026-10-04", "2026-10-05", "2026-10-06", "2026-10-07"
+]);
+const ADJUSTED_WORKDAYS = new Set(["2026-02-14", "2026-02-28", "2026-05-09", "2026-09-20", "2026-10-10"]);
 
 function scheduleRequirements(requirements, baseDate = todayIso()) {
   const loads = {};
@@ -178,7 +188,7 @@ function addBusinessDaysIso(date, days) {
   let remaining = days;
   while (remaining > 0) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
-    if (!isWeekend(cursor)) remaining -= 1;
+    if (isWorkday(cursor)) remaining -= 1;
   }
   return toIsoDate(cursor);
 }
@@ -194,7 +204,7 @@ function businessDayDiff(start, end) {
 
   while (cursor < last) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
-    if (!isWeekend(cursor)) count += 1;
+    if (isWorkday(cursor)) count += 1;
   }
 
   return count;
@@ -206,7 +216,7 @@ function businessDaySpan(start, end) {
   let count = 0;
 
   while (cursor <= last) {
-    if (!isWeekend(cursor)) count += 1;
+    if (isWorkday(cursor)) count += 1;
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
@@ -219,7 +229,7 @@ function businessDaysBetween(start, end) {
   const days = [];
 
   while (cursor <= last) {
-    if (!isWeekend(cursor)) days.push(toIsoDate(cursor));
+    if (isWorkday(cursor)) days.push(toIsoDate(cursor));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
@@ -247,6 +257,13 @@ function toIsoDate(date) {
 function isWeekend(date) {
   const day = date.getUTCDay();
   return day === 0 || day === 6;
+}
+
+function isWorkday(date) {
+  const iso = toIsoDate(date);
+  if (ADJUSTED_WORKDAYS.has(iso)) return true;
+  if (HOLIDAYS.has(iso)) return false;
+  return !isWeekend(date);
 }
 
 module.exports = { scheduleRequirements };

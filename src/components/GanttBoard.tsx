@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
-import { eachDay, toIsoDate } from "../lib/date";
+import { businessDaysBetween, eachDay, isWorkingDay, toIsoDate } from "../lib/date";
 import { STATUS_COLORS } from "../lib/constants";
 import { ScheduledRequirement } from "../types";
 
@@ -124,10 +124,10 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
         <button className={scale === "quarter" ? "active" : ""} onClick={() => onScaleChange("quarter")}>季</button>
       </div>
       <div className="timeline" style={{ gridTemplateColumns: `repeat(${days.length}, ${dayWidth}px)` }}>
-        {days.map((day) => (
-          <div className="timeline-day" key={day}>
+              {days.map((day) => (
+          <div className={`timeline-day ${isWorkingDay(day) ? "" : "non-workday"}`} key={day}>
             <span>{scale === "week" ? format(parseISO(day), "MM/dd") : format(parseISO(day), "d")}</span>
-            {scale !== "quarter" && <small>{scale === "week" ? format(parseISO(day), "EEE") : format(parseISO(day), "MMM")}</small>}
+            {scale !== "quarter" && <small>{isWorkingDay(day) ? (scale === "week" ? format(parseISO(day), "EEE") : format(parseISO(day), "MMM")) : "休"}</small>}
           </div>
         ))}
       </div>
@@ -138,7 +138,7 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
           return (
             <div className="lane" key={owner} style={{ height: ROW_HEIGHT }}>
               {days.map((day) => (
-                <div className="lane-cell" key={`${owner}-${day}`} style={{ width: dayWidth }} />
+                <div className={`lane-cell ${isWorkingDay(day) ? "" : "non-workday"}`} key={`${owner}-${day}`} style={{ width: dayWidth }} />
               ))}
               {laneItems.map((item) => {
                 const startIndex = Math.max(0, days.indexOf(item.scheduledStart));
@@ -151,14 +151,17 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
                   <div key={item.id}>
                     {preview && (
                       <>
-                        <div
-                          className="task-ghost"
-                          style={{
-                            left: startIndex * dayWidth + 7,
-                            width,
-                            top: 16 + Math.min(26, item.offsetHours * 3)
-                          }}
-                        />
+                        {buildWorkdaySegments(item.scheduledStart, item.scheduledEnd, days).map((segment) => (
+                          <div
+                            key={`${item.sourceId}-ghost-${segment.start}`}
+                            className="task-ghost"
+                            style={{
+                              left: segment.startIndex * dayWidth + 7,
+                              width: Math.max(segment.daySpan * dayWidth - 14, scale === "week" ? 90 : 34),
+                              top: 16 + Math.min(26, item.offsetHours * 3)
+                            }}
+                          />
+                        ))}
                         <div
                           className={`task-preview ${preview.mode}`}
                           style={{
@@ -173,30 +176,37 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
                         </div>
                       </>
                     )}
-                    <button
-                      className={`task-bar ${item.overCapacity ? "is-over" : ""} ${item.unassigned ? "is-unassigned" : ""} ${activeGestureId === item.sourceId ? "is-moving" : ""}`}
-                      style={{
-                        left: (preview ? previewStartIndex : startIndex) * dayWidth + 7,
-                        width: preview ? previewWidth : width,
-                        background: STATUS_COLORS[item.status],
-                        top: 16 + Math.min(26, item.offsetHours * 3)
-                      }}
-                      onClick={() => onSelect(item)}
-                      onPointerDown={(event) => startGesture(event, item, "move")}
-                      title={`${item.name} / ${item.estimateHours}h`}
-                    >
-                      <span
-                        className="task-resize left"
-                        onPointerDown={(event) => startGesture(event, item, "start")}
-                      />
-                      <strong>{item.priority}</strong>
-                      <span>{item.name}</span>
-                      <small>{item.estimateHours}h</small>
-                      <span
-                        className="task-resize right"
-                        onPointerDown={(event) => startGesture(event, item, "end")}
-                      />
-                    </button>
+                    {buildWorkdaySegments(preview?.start ?? item.scheduledStart, preview?.end ?? item.scheduledEnd, days).map((segment, segmentIndex, segments) => (
+                      <button
+                        key={`${item.sourceId}-${segment.start}`}
+                        className={`task-bar ${segments.length > 1 ? "segmented" : ""} ${segmentIndex === 0 ? "first-segment" : ""} ${segmentIndex === segments.length - 1 ? "last-segment" : ""} ${item.overCapacity ? "is-over" : ""} ${item.unassigned ? "is-unassigned" : ""} ${activeGestureId === item.sourceId ? "is-moving" : ""}`}
+                        style={{
+                          left: segment.startIndex * dayWidth + 7,
+                          width: Math.max(segment.daySpan * dayWidth - 14, scale === "week" ? 90 : 34),
+                          background: STATUS_COLORS[item.status],
+                          top: 16 + Math.min(26, item.offsetHours * 3)
+                        }}
+                        onClick={() => onSelect(item)}
+                        onPointerDown={(event) => startGesture(event, item, "move")}
+                        title={`${item.name} / ${item.estimateHours}h`}
+                      >
+                        {segmentIndex === 0 && (
+                          <span
+                            className="task-resize left"
+                            onPointerDown={(event) => startGesture(event, item, "start")}
+                          />
+                        )}
+                        <strong>{item.priority}</strong>
+                        <span>{segmentIndex === 0 ? item.name : "续"}</span>
+                        <small>{segmentIndex === segments.length - 1 ? `${item.estimateHours}h` : segment.end}</small>
+                        {segmentIndex === segments.length - 1 && (
+                          <span
+                            className="task-resize right"
+                            onPointerDown={(event) => startGesture(event, item, "end")}
+                          />
+                        )}
+                      </button>
+                    ))}
                   </div>
                 );
               })}
@@ -206,4 +216,22 @@ export function GanttBoard({ requirements, owners, rangeStart, rangeEnd, scale, 
       </div>
     </section>
   );
+}
+
+function buildWorkdaySegments(start: string, end: string, visibleDays: string[]) {
+  const visible = new Set(visibleDays);
+  const workdays = businessDaysBetween(start, end).filter((day) => visible.has(day));
+  const segments: Array<{ start: string; end: string; startIndex: number; daySpan: number }> = [];
+
+  for (const day of workdays) {
+    const previous = segments[segments.length - 1];
+    if (previous && differenceInCalendarDays(parseISO(day), parseISO(previous.end)) === 1) {
+      previous.end = day;
+      previous.daySpan += 1;
+    } else {
+      segments.push({ start: day, end: day, startIndex: visibleDays.indexOf(day), daySpan: 1 });
+    }
+  }
+
+  return segments;
 }

@@ -659,6 +659,27 @@ textarea {
   border-right: 1px solid #e8edf5;
 }
 
+.timeline-day.non-workday {
+  color: #8a95a8;
+  background: #f4f6fa;
+}
+
+.timeline-day.non-workday span {
+  color: #8a95a8;
+}
+
+.timeline-day.non-workday small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #8a5600;
+  background: #fff1d6;
+  font-weight: 800;
+}
+
 .timeline-day span {
   font-weight: 700;
 }
@@ -682,6 +703,15 @@ textarea {
   height: 100%;
   border-right: 1px solid #eef2f7;
   background-image: linear-gradient(to bottom, rgba(23, 107, 255, 0.04), rgba(23, 107, 255, 0));
+}
+
+.lane-cell.non-workday {
+  background-color: #f5f7fb;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(138, 149, 168, 0.12) 0 6px,
+    rgba(138, 149, 168, 0.04) 6px 12px
+  );
 }
 
 .task-bar {
@@ -711,6 +741,29 @@ textarea {
 .task-bar:active,
 .task-bar.is-moving {
   cursor: grabbing;
+}
+
+.task-bar.segmented {
+  border-radius: 4px;
+}
+
+.task-bar.segmented:not(.first-segment) {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+
+.task-bar.segmented:not(.last-segment) {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+.task-bar.segmented::after {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: inherit;
+  content: "";
+  pointer-events: none;
 }
 
 .task-bar.is-moving {

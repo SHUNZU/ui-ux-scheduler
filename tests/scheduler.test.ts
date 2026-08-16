@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isDesignWorkItem, normalizeWorkItem } from "../src/lib/normalize";
 import { scheduleRequirements } from "../src/lib/scheduler";
+import { addBusinessDaysIso, businessDaysBetween, isWorkingDay } from "../src/lib/date";
 import { DesignRequirement, ProjectWorkItem } from "../src/types";
 
 const baseRequirement: DesignRequirement = {
@@ -48,6 +49,18 @@ describe("design work item filtering", () => {
     };
 
     expect(isDesignWorkItem(item)).toBe(false);
+  });
+});
+
+describe("workday calendar", () => {
+  it("distinguishes legal holidays from adjusted workdays", () => {
+    expect(isWorkingDay("2026-10-01")).toBe(false);
+    expect(isWorkingDay("2026-10-10")).toBe(true);
+  });
+
+  it("skips legal holidays when adding business days", () => {
+    expect(addBusinessDaysIso("2026-09-24", 1)).toBe("2026-09-28");
+    expect(businessDaysBetween("2026-09-24", "2026-09-28")).toEqual(["2026-09-24", "2026-09-28"]);
   });
 });
 
