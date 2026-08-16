@@ -224,6 +224,33 @@ textarea {
   flex-wrap: wrap;
 }
 
+.feishu-sync-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: min(420px, 42vw);
+  min-height: 36px;
+  border: 1px solid #cfd8e6;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #657188;
+  background: #ffffff;
+}
+
+.feishu-sync-input:focus-within {
+  border-color: #176bff;
+  box-shadow: 0 0 0 3px rgba(23, 107, 255, 0.12);
+}
+
+.feishu-sync-input input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #172033;
+  background: transparent;
+}
+
 .segmented {
   display: inline-flex;
   height: 34px;

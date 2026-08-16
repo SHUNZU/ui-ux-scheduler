@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronDown, Eye, PencilLine, RefreshCcw } from "lucide-react";
+import { CalendarRange, ChevronDown, Eye, Link, PencilLine, RefreshCcw } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -7,10 +7,12 @@ interface ToolbarProps {
   owners: string[];
   requesters: string[];
   syncLabel: string;
+  feishuUrl: string;
   loading: boolean;
   canEdit: boolean;
   onRequestEdit: () => void;
   onChange: (filters: Filters) => void;
+  onFeishuUrlChange: (value: string) => void;
   onSync: () => void;
 }
 
@@ -19,10 +21,12 @@ export function Toolbar({
   owners,
   requesters,
   syncLabel,
+  feishuUrl,
   loading,
   canEdit,
   onRequestEdit,
   onChange,
+  onFeishuUrlChange,
   onSync
 }: ToolbarProps) {
   const patch = (partial: Partial<Filters>) => onChange({ ...filters, ...partial });
@@ -37,13 +41,22 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-actions">
+        <label className="feishu-sync-input" title="粘贴飞书多维表格链接后可同步该表格">
+          <Link size={15} />
+          <input
+            type="url"
+            value={feishuUrl}
+            placeholder="粘贴飞书多维表格链接"
+            onChange={(event) => onFeishuUrlChange(event.target.value)}
+          />
+        </label>
         <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
           {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
           编辑
         </button>
-        <button className="primary-button" onClick={onSync} disabled={loading} title={canEdit ? "重新同步飞书项目需求" : "输入管理员密码后同步"}>
+        <button className="primary-button" onClick={onSync} disabled={loading} title={canEdit ? "同步飞书项目需求" : "输入管理员密码后同步"}>
           <RefreshCcw size={16} />
-          {loading ? "同步中" : "重新同步"}
+          {loading ? "同步中" : "同步"}
         </button>
       </div>
 

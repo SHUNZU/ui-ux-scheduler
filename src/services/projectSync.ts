@@ -23,10 +23,14 @@ export async function syncProjectRequirements(): Promise<SyncResult> {
   };
 }
 
-export async function triggerProjectSync(editKey = ""): Promise<SyncResult> {
+export async function triggerProjectSync(editKey = "", sourceUrl = ""): Promise<SyncResult> {
   const response = await fetch("/api/sync", {
     method: "POST",
-    headers: getEditHeaders(editKey)
+    headers: {
+      "Content-Type": "application/json",
+      ...getEditHeaders(editKey)
+    },
+    body: JSON.stringify({ sourceUrl: sourceUrl.trim() || undefined })
   });
 
   if (!response.ok) {

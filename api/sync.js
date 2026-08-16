@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const syncedAt = new Date().toISOString();
-    const items = await fetchFeishuWorkItems();
+    const items = await fetchFeishuWorkItems({ sourceUrl: req.body?.sourceUrl || "" });
     const designItems = items.filter(isDesignWorkItem);
     const normalized = designItems.map((item) => normalizeWorkItem(item, syncedAt));
     const existingRows = await listRequirements();

@@ -39,6 +39,7 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
+  const [feishuUrl, setFeishuUrl] = useState("");
   const [activeTab, setActiveTab] = useState("gantt");
   const [ganttScale, setGanttScale] = useState<"week" | "month" | "quarter">("week");
   const [canEdit, setCanEdit] = useState(() => hasValidEditSession());
@@ -137,7 +138,7 @@ export default function App() {
     setLoading(true);
     setError("");
     try {
-      const result = await triggerProjectSync(getEditKey());
+      const result = await triggerProjectSync(getEditKey(), feishuUrl);
       setRequirements(result.requirements);
       setSyncLabel(`已从飞书同步 ${result.requirements.length} 条设计需求，忽略 ${result.ignoredCount} 条非设计需求`);
     } catch (syncError) {
@@ -479,10 +480,12 @@ export default function App() {
         owners={owners}
         requesters={requesters}
         syncLabel={syncLabel}
+        feishuUrl={feishuUrl}
         loading={loading}
         canEdit={canEdit}
         onRequestEdit={ensureEditAccess}
         onChange={setFilters}
+        onFeishuUrlChange={setFeishuUrl}
         onSync={handleSync}
       />
 

@@ -1,10 +1,36 @@
-async function fetchFeishuWorkItems() {
-  const sources = parseSources();
+async function fetchFeishuWorkItems(options = {}) {
+  const sources = options.sourceUrl ? [parseSourceUrl(options.sourceUrl)] : parseSources();
   if (sources.length === 0) return [];
 
   const token = await getTenantAccessToken();
   const batches = await Promise.all(sources.map((source) => fetchBitableSource(source, token)));
   return batches.flat();
+}
+
+function parseSourceUrl(sourceUrl) {
+  let url;
+  try {
+    url = new URL(sourceUrl);
+  } catch {
+    throw new Error("飞书表格链接格式不正确");
+  }
+
+  const appToken = url.pathname.split("/").filter(Boolean).pop();
+  const tableId = url.searchParams.get("table") || "";
+  const viewId = url.searchParams.get("view") || "";
+
+  if (!appToken || !tableId) {
+    throw new Error("飞书表格链接缺少 appToken 或 table 参数");
+  }
+
+  return {
+    name: "飞书链接同步",
+    appToken,
+    tableId,
+    viewId,
+    useView: Boolean(viewId),
+    tableName: "飞书需求表"
+  };
 }
 
 function parseSources() {
