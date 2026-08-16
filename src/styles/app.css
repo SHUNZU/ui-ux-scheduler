@@ -199,6 +199,9 @@ textarea {
 .single-table-shell .table-wrap {
   border: 0;
   border-radius: 0;
+  max-height: calc(100vh - 388px);
+  min-height: 320px;
+  overflow: auto;
 }
 
 .toolbar-title h1 {
