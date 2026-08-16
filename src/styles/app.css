@@ -229,6 +229,12 @@ textarea {
   justify-content: flex-end;
 }
 
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #d7dfeb;
+}
+
 .filter-row {
   grid-column: 1 / -1;
   justify-content: space-between;
@@ -1327,7 +1333,8 @@ textarea {
   pointer-events: none;
 }
 
-.auth-backdrop {
+.auth-backdrop,
+.modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 30;
@@ -1336,7 +1343,8 @@ textarea {
   background: rgba(15, 23, 42, 0.28);
 }
 
-.auth-dialog {
+.auth-dialog,
+.export-dialog {
   display: grid;
   gap: 12px;
   width: min(360px, calc(100vw - 32px));
@@ -1346,7 +1354,12 @@ textarea {
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
 }
 
-.auth-dialog h2 {
+.export-dialog {
+  width: min(460px, calc(100vw - 32px));
+}
+
+.auth-dialog h2,
+.export-dialog h2 {
   margin: 0;
   font-size: 18px;
 }
@@ -1371,6 +1384,37 @@ textarea {
 }
 
 .auth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.export-options {
+  display: grid;
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+  padding: 4px 2px;
+}
+
+.export-option {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  border: 1px solid #d7dfeb;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #26344d;
+  background: #ffffff;
+}
+
+.export-option input {
+  width: 14px;
+  height: 14px;
+}
+
+.export-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;

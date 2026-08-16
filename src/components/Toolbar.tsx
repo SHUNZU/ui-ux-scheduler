@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronDown, Link, PencilLine, RefreshCcw, Settings } from "lucide-react";
+import { CalendarRange, ChevronDown, Download, Link, PencilLine, RefreshCcw, Settings } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -19,6 +19,7 @@ interface ToolbarProps {
   onSettingsOpenChange: (open: boolean) => void;
   onDefaultSync: () => void;
   onSpecifiedSync: () => void;
+  onOpenExport: () => void;
 }
 
 export function Toolbar({
@@ -37,7 +38,8 @@ export function Toolbar({
   onSpecifiedFeishuUrlChange,
   onSettingsOpenChange,
   onDefaultSync,
-  onSpecifiedSync
+  onSpecifiedSync,
+  onOpenExport
 }: ToolbarProps) {
   const patch = (partial: Partial<Filters>) => onChange({ ...filters, ...partial });
   const toggleValue = (values: string[], value: string) =>
@@ -86,6 +88,11 @@ export function Toolbar({
         <button className="primary-button default-sync-button" onClick={onDefaultSync} disabled={loading} type="button" title={canEdit ? "同步设置里的默认飞书链接" : "输入管理员密码后同步"}>
           <RefreshCcw size={16} />
           {loading ? "同步中" : "默认同步"}
+        </button>
+        <span className="toolbar-divider" />
+        <button className="ghost-button" onClick={onOpenExport} type="button" title="导出需求数据">
+          <Download size={16} />
+          导出
         </button>
       </div>
 

@@ -49,6 +49,8 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportProjects, setExportProjects] = useState<string[]>([]);
 
   useEffect(() => {
     void handleLoad();
@@ -115,6 +117,7 @@ export default function App() {
       .map(([name]) => name);
     return names.length > 0 ? names : ["需求表格"];
   }, [scheduled]);
+  const exportProjectOptions = useMemo(() => tableNames.filter(Boolean), [tableNames]);
   const activeTableRequirements = useMemo(
     () => filtered.filter((item) => (item.project || "需求表格") === activeTab),
     [filtered, activeTab]
@@ -452,6 +455,29 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  function handleOpenExport() {
+    setExportProjects(exportProjectOptions);
+    setExportOpen(true);
+  }
+
+  function toggleExportProject(name: string) {
+    setExportProjects((current) =>
+      current.includes(name) ? current.filter((item) => item !== name) : [...current, name]
+    );
+  }
+
+  function handleConfirmExport() {
+    const selectedProjects = exportProjects;
+    const selectedSet = new Set(selectedProjects);
+    const rows = scheduled
+      .filter((item) => selectedSet.has(item.project || "需求表格"))
+      .sort((a, b) => (a.project || "").localeCompare(b.project || "", "zh-CN") || a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt));
+
+    exportRequirementsCsv(rows, selectedProjects.length === exportProjectOptions.length ? "全部项目" : selectedProjects.join("_"));
+    setExportOpen(false);
+    setSyncLabel(`已导出 ${rows.length} 条需求数据`);
+  }
+
   function handleImportTable(name: string) {
     if (!ensureEditAccess()) return;
     const input = document.createElement("input");
@@ -507,6 +533,7 @@ export default function App() {
         onSettingsOpenChange={setSettingsOpen}
         onDefaultSync={handleDefaultSync}
         onSpecifiedSync={handleSpecifiedSync}
+        onOpenExport={handleOpenExport}
       />
 
       <ViewTabs
@@ -576,6 +603,29 @@ export default function App() {
       )}
 
       <RequirementDrawer requirement={selectedRequirement} canEdit={canEdit} onClose={() => setSelected(null)} onRequestEdit={ensureEditAccess} onUpdate={handleUpdateRequirement} />
+      {exportOpen && (
+        <div className="modal-backdrop" onClick={() => setExportOpen(false)}>
+          <section className="export-dialog" onClick={(event) => event.stopPropagation()}>
+            <h2>选择要导出数据</h2>
+            <div className="export-options">
+              {exportProjectOptions.map((name) => (
+                <label key={name} className="export-option">
+                  <input
+                    type="checkbox"
+                    checked={exportProjects.includes(name)}
+                    onChange={() => toggleExportProject(name)}
+                  />
+                  <span>{name}</span>
+                </label>
+              ))}
+            </div>
+            <div className="export-actions">
+              <button type="button" className="ghost-button" onClick={() => setExportOpen(false)}>取消</button>
+              <button type="button" className="primary-button" onClick={handleConfirmExport} disabled={exportProjects.length === 0}>确认导出</button>
+            </div>
+          </section>
+        </div>
+      )}
       {authOpen && (
         <div className="auth-backdrop" onClick={() => setAuthOpen(false)}>
           <form
@@ -614,6 +664,41 @@ function hasValidEditSession(): boolean {
 
 function csvCell(value: string): string {
   return `"${value.replace(/"/g, "\"\"")}"`;
+}
+
+function exportRequirementsCsv(rows: ScheduledRequirement[], scopeName: string): void {
+  const header: Array<[string, (row: ScheduledRequirement) => string | number | boolean | undefined | null]> = [
+    ["需求名称", (row) => row.name],
+    ["项目", (row) => row.project],
+    ["设计负责人", (row) => row.owner],
+    ["产品负责人", (row) => row.productOwner],
+    ["下发人", (row) => row.requester],
+    ["状态", (row) => row.status],
+    ["优先级", (row) => row.priority],
+    ["预估(小时)", (row) => row.estimateHours],
+    ["顺序", (row) => row.sequence],
+    ["插单", (row) => row.isRush ? "是" : "否"],
+    ["开始日期", (row) => row.startDate || row.scheduledStart],
+    ["截止日期", (row) => row.dueDate || row.scheduledEnd],
+    ["排期开始", (row) => row.scheduledStart],
+    ["排期结束", (row) => row.scheduledEnd],
+    ["延期(工作日)", (row) => row.delayedDays],
+    ["阻塞原因", (row) => row.blockedReason],
+    ["插单原因", (row) => row.rushReason],
+    ["备注", (row) => row.note],
+    ["来源链接", (row) => row.sourceUrl]
+  ];
+  const csv = [
+    header.map(([label]) => csvCell(label)).join(","),
+    ...rows.map((row) => header.map(([, getValue]) => csvCell(String(getValue(row) ?? ""))).join(","))
+  ].join("\n");
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `UIUX需求排期-${scopeName || "导出"}-${todayIso()}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 function errorMessage(error: unknown, fallback: string): string {
