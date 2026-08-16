@@ -577,19 +577,6 @@ export default function App() {
         onOpenExport={handleOpenExport}
       />
 
-      <ViewTabs
-        activeTab={activeTab}
-        tableNames={tableNames}
-        canEdit={canEdit}
-        onSelect={setActiveTab}
-        onAddTable={handleAddTable}
-        onRenameTable={handleRenameProject}
-        onReorderTables={handleReorderTables}
-        onDeleteTable={handleDeleteTable}
-        onImportTable={handleImportTable}
-        onExportTable={handleExportTable}
-      />
-
       {error && (
         <div className="error-banner">
           <AlertTriangle size={18} />
@@ -604,6 +591,19 @@ export default function App() {
         <div><strong>{blockedCount}</strong><span>阻塞</span></div>
         <div><strong>{overloadCount}</strong><span>超载</span></div>
       </section>
+
+      <ViewTabs
+        activeTab={activeTab}
+        tableNames={tableNames}
+        canEdit={canEdit}
+        onSelect={setActiveTab}
+        onAddTable={handleAddTable}
+        onRenameTable={handleRenameProject}
+        onReorderTables={handleReorderTables}
+        onDeleteTable={handleDeleteTable}
+        onImportTable={handleImportTable}
+        onExportTable={handleExportTable}
+      />
 
       {activeTab === "gantt" && (
         <section className="board-shell">

@@ -105,7 +105,7 @@ export function Toolbar({
           {loading ? "同步中" : "默认同步"}
         </button>
         <span className="toolbar-divider" />
-        <button className="ghost-button" onClick={onOpenExport} type="button" title="导出需求数据">
+        <button className="ghost-button export-button" onClick={onOpenExport} type="button" title="导出需求数据">
           <Download size={16} />
           导出
         </button>
@@ -207,12 +207,12 @@ export function Toolbar({
             </div>
           )}
         </div>
-        <button className="ghost-button" type="button" onClick={onSearchSubmit} disabled={searchSuggestions.length === 0}>
+        <button className="ghost-button search-button" type="button" onClick={onSearchSubmit} disabled={searchSuggestions.length === 0}>
           <Search size={16} />
           搜索
         </button>
         <span className="toolbar-divider" />
-        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
+        <button className={`mode-badge edit-button ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
           <PencilLine size={14} />
           编辑
         </button>

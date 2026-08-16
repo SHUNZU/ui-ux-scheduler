@@ -43,7 +43,7 @@ textarea {
   align-items: center;
   gap: 4px;
   min-height: 48px;
-  margin-top: 12px;
+  margin: 0 0 14px;
   padding: 0 14px;
   border: 1px solid #dfe5ef;
   border-radius: 8px 8px 0 0;
@@ -238,7 +238,7 @@ textarea {
 .filter-row {
   grid-column: 1 / -1;
   justify-content: space-between;
-  gap: 16px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -462,7 +462,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
+  min-height: 36px;
   border-radius: 999px;
   padding: 0 10px;
   font-size: 12px;
@@ -470,7 +470,19 @@ textarea {
 }
 
 .mode-badge {
+  justify-content: center;
+  border-radius: 999px;
   cursor: pointer;
+}
+
+.export-button,
+.edit-button {
+  width: 86px;
+}
+
+.search-button {
+  width: 86px;
+  justify-content: center;
 }
 
 .mode-badge.readonly,
