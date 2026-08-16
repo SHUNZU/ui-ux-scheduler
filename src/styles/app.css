@@ -217,6 +217,7 @@ textarea {
 }
 
 .toolbar-actions,
+.filter-row,
 .filters {
   display: flex;
   gap: 10px;
@@ -226,6 +227,13 @@ textarea {
 
 .toolbar-actions {
   justify-content: flex-end;
+}
+
+.filter-row {
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
 }
 
 .feishu-sync-input {
@@ -326,10 +334,9 @@ textarea {
 }
 
 .filters {
-  grid-column: 1 / 2;
+  flex: 1 1 auto;
   min-width: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
+  overflow: visible;
 }
 
 .sync-meta {
@@ -408,6 +415,20 @@ textarea {
   border: 1px solid #d7dfeb;
   border-radius: 6px;
   background: #ffffff;
+}
+
+.toggle,
+.multi-filter summary,
+.date-filter {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
 }
 
 .filters input {
@@ -500,6 +521,7 @@ textarea {
 
 .date-filter input {
   border: 0;
+  width: 130px;
   min-height: 30px;
 }
 
@@ -509,6 +531,10 @@ textarea {
   gap: 6px;
   color: #334155;
   font-size: 13px;
+}
+
+.toggle input {
+  flex: 0 0 auto;
 }
 
 .error-banner {

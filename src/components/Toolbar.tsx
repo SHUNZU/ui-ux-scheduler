@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronDown, Eye, Link, PencilLine, RefreshCcw, Settings } from "lucide-react";
+import { CalendarRange, ChevronDown, Link, PencilLine, RefreshCcw, Settings } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -87,85 +87,87 @@ export function Toolbar({
           <RefreshCcw size={16} />
           {loading ? "同步中" : "默认同步"}
         </button>
-        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
-          {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
-          编辑
-        </button>
       </div>
 
-      <div className="filters">
-        <MultiFilter
-          label="下发人"
-          allLabel="全部下发人"
-          options={requesters}
-          values={filters.requesters}
-          onChange={(value) => patch({ requesters: toggleValue(filters.requesters, value) })}
-          onClear={() => patch({ requesters: [] })}
-        />
-        <MultiFilter
-          label="负责人"
-          allLabel="全部负责人"
-          options={owners}
-          values={filters.owners}
-          onChange={(value) => patch({ owners: toggleValue(filters.owners, value) })}
-          onClear={() => patch({ owners: [] })}
-        />
-        <MultiFilter
-          label="状态"
-          allLabel="全部状态"
-          options={[...STATUS_OPTIONS]}
-          values={filters.statuses}
-          onChange={(value) => patch({ statuses: toggleValue(filters.statuses, value) })}
-          onClear={() => patch({ statuses: [] })}
-        />
-        <MultiFilter
-          label="优先级"
-          allLabel="全部优先级"
-          options={[...PRIORITY_OPTIONS]}
-          values={filters.priorities}
-          onChange={(value) => patch({ priorities: toggleValue(filters.priorities, value) })}
-          onClear={() => patch({ priorities: [] })}
-        />
-        <label className="date-filter">
-          <CalendarRange size={15} />
-          <input type="date" value={filters.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
-        </label>
-        <label className="date-filter">
-          <CalendarRange size={15} />
-          <input type="date" value={filters.endDate} onChange={(event) => patch({ endDate: event.target.value })} />
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={filters.overloadedOnly}
-            onChange={(event) => patch({ overloadedOnly: event.target.checked })}
+      <div className="filter-row">
+        <div className="filters">
+          <MultiFilter
+            label="下发人"
+            allLabel="全部下发人"
+            options={requesters}
+            values={filters.requesters}
+            onChange={(value) => patch({ requesters: toggleValue(filters.requesters, value) })}
+            onClear={() => patch({ requesters: [] })}
           />
-          只看超载
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={filters.blockedOnly}
-            onChange={(event) => patch({ blockedOnly: event.target.checked })}
+          <MultiFilter
+            label="负责人"
+            allLabel="全部负责人"
+            options={owners}
+            values={filters.owners}
+            onChange={(value) => patch({ owners: toggleValue(filters.owners, value) })}
+            onClear={() => patch({ owners: [] })}
           />
-          只看阻塞
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={filters.rushOnly}
-            onChange={(event) => patch({ rushOnly: event.target.checked })}
+          <MultiFilter
+            label="状态"
+            allLabel="全部状态"
+            options={[...STATUS_OPTIONS]}
+            values={filters.statuses}
+            onChange={(value) => patch({ statuses: toggleValue(filters.statuses, value) })}
+            onClear={() => patch({ statuses: [] })}
           />
-          只看插单
-        </label>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={filters.delayedOnly}
-            onChange={(event) => patch({ delayedOnly: event.target.checked })}
+          <MultiFilter
+            label="优先级"
+            allLabel="全部优先级"
+            options={[...PRIORITY_OPTIONS]}
+            values={filters.priorities}
+            onChange={(value) => patch({ priorities: toggleValue(filters.priorities, value) })}
+            onClear={() => patch({ priorities: [] })}
           />
-          只看延期
-        </label>
+          <label className="date-filter">
+            <CalendarRange size={15} />
+            <input type="date" value={filters.startDate} onChange={(event) => patch({ startDate: event.target.value })} />
+          </label>
+          <label className="date-filter">
+            <CalendarRange size={15} />
+            <input type="date" value={filters.endDate} onChange={(event) => patch({ endDate: event.target.value })} />
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.overloadedOnly}
+              onChange={(event) => patch({ overloadedOnly: event.target.checked })}
+            />
+            只看超载
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.blockedOnly}
+              onChange={(event) => patch({ blockedOnly: event.target.checked })}
+            />
+            只看阻塞
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.rushOnly}
+              onChange={(event) => patch({ rushOnly: event.target.checked })}
+            />
+            只看插单
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={filters.delayedOnly}
+              onChange={(event) => patch({ delayedOnly: event.target.checked })}
+            />
+            只看延期
+          </label>
+        </div>
+        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
+          <PencilLine size={14} />
+          编辑
+        </button>
       </div>
 
       <div className="sync-meta">{syncLabel}</div>
