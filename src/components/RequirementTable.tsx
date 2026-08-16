@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowUpRight, Flame, GripVertical, Link as LinkIcon, UserRound } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_COLORS, STATUS_OPTIONS } from "../lib/constants";
 import { todayIso } from "../lib/date";
@@ -16,6 +16,7 @@ interface RequirementTableProps {
   onInsertRow?: (requirement: ScheduledRequirement, position: "above" | "below") => void;
   onShareRow?: (requirement: ScheduledRequirement) => void;
   onDeleteRow?: (requirement: ScheduledRequirement) => void;
+  focusSourceId?: string;
 }
 
 type ColumnId =
@@ -73,7 +74,8 @@ export function RequirementTable({
   onReorder,
   onInsertRow,
   onShareRow,
-  onDeleteRow
+  onDeleteRow,
+  focusSourceId = ""
 }: RequirementTableProps) {
   const [columns, setColumns] = useState(loadColumns);
   const [draggingId, setDraggingId] = useState("");
@@ -82,9 +84,17 @@ export function RequirementTable({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ScheduledRequirement } | null>(null);
   const [editingNameId, setEditingNameId] = useState("");
   const [draftName, setDraftName] = useState("");
+  const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
   const today = todayIso();
 
   const tableWidth = useMemo(() => columns.reduce((sum, column) => sum + column.width, 0), [columns]);
+
+  useEffect(() => {
+    if (!focusSourceId) return;
+    window.requestAnimationFrame(() => {
+      rowRefs.current.get(focusSourceId)?.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    });
+  }, [focusSourceId, requirements]);
 
   const saveColumns = (next: ColumnConfig[]) => {
     setColumns(next);
@@ -209,9 +219,14 @@ export function RequirementTable({
           {requirements.map((item, index) => (
             <tr
               key={item.sourceId}
+              ref={(node) => {
+                if (node) rowRefs.current.set(item.sourceId, node);
+                else rowRefs.current.delete(item.sourceId);
+              }}
               className={[
                 draggingId === item.sourceId ? "dragging-row" : "",
-                dropTargetId === item.sourceId ? "drop-target-row" : ""
+                dropTargetId === item.sourceId ? "drop-target-row" : "",
+                focusSourceId === item.sourceId ? "focused-row" : ""
               ].filter(Boolean).join(" ")}
               onClick={() => onSelect(item)}
               onContextMenu={(event) => {

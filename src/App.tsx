@@ -51,6 +51,8 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportProjects, setExportProjects] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [focusedRequirementId, setFocusedRequirementId] = useState("");
 
   useEffect(() => {
     void handleLoad();
@@ -126,6 +128,26 @@ export default function App() {
     if (!selected) return null;
     return scheduled.find((item) => item.sourceId === selected.sourceId) ?? null;
   }, [selected, scheduled]);
+  const searchSuggestions = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return [];
+    const matches = scheduled
+      .filter((item) => item.name.toLowerCase().includes(keyword))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name, "zh-CN") || (a.project || "").localeCompare(b.project || "", "zh-CN"))
+      .slice(0, 12);
+    const projectsByName = new Map<string, Set<string>>();
+    for (const item of scheduled) {
+      const name = item.name.trim();
+      if (!name) continue;
+      if (!projectsByName.has(name)) projectsByName.set(name, new Set());
+      projectsByName.get(name)!.add(item.project || "未归属项目");
+    }
+    return matches.map((item) => ({
+      item,
+      showProjectTag: (projectsByName.get(item.name.trim())?.size || 0) > 1
+    }));
+  }, [scheduled, searchQuery]);
 
   async function handleLoad() {
     setLoading(true);
@@ -478,6 +500,20 @@ export default function App() {
     setSyncLabel(`已导出 ${rows.length} 条需求数据`);
   }
 
+  function handleSelectSearchRequirement(item: ScheduledRequirement) {
+    setFilters(initialFilters);
+    setActiveTab(item.project || "需求表格");
+    setSelected(item);
+    setFocusedRequirementId(item.sourceId);
+    setSearchQuery(item.name);
+    setSyncLabel(`已定位到 ${item.project || "未归属项目"} / ${item.name}`);
+  }
+
+  function handleSearchSubmit() {
+    const first = searchSuggestions[0]?.item;
+    if (first) handleSelectSearchRequirement(first);
+  }
+
   function handleImportTable(name: string) {
     if (!ensureEditAccess()) return;
     const input = document.createElement("input");
@@ -524,6 +560,8 @@ export default function App() {
         defaultFeishuUrl={defaultFeishuUrl}
         specifiedFeishuUrl={specifiedFeishuUrl}
         settingsOpen={settingsOpen}
+        searchQuery={searchQuery}
+        searchSuggestions={searchSuggestions}
         loading={loading}
         canEdit={canEdit}
         onRequestEdit={ensureEditAccess}
@@ -531,6 +569,9 @@ export default function App() {
         onDefaultFeishuUrlChange={setDefaultFeishuUrl}
         onSpecifiedFeishuUrlChange={setSpecifiedFeishuUrl}
         onSettingsOpenChange={setSettingsOpen}
+        onSearchQueryChange={setSearchQuery}
+        onSelectSearchSuggestion={handleSelectSearchRequirement}
+        onSearchSubmit={handleSearchSubmit}
         onDefaultSync={handleDefaultSync}
         onSpecifiedSync={handleSpecifiedSync}
         onOpenExport={handleOpenExport}
@@ -598,6 +639,7 @@ export default function App() {
             onInsertRow={handleInsertRow}
             onShareRow={handleShareRow}
             onDeleteRow={handleDeleteRow}
+            focusSourceId={focusedRequirementId}
           />
         </section>
       )}

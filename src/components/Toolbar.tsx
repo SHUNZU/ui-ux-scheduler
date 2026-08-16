@@ -1,6 +1,11 @@
-import { CalendarRange, ChevronDown, Download, Link, PencilLine, RefreshCcw, Settings } from "lucide-react";
+import { CalendarRange, ChevronDown, Download, Link, PencilLine, RefreshCcw, Search, Settings } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
-import { Filters } from "../types";
+import { Filters, ScheduledRequirement } from "../types";
+
+export interface SearchSuggestion {
+  item: ScheduledRequirement;
+  showProjectTag: boolean;
+}
 
 interface ToolbarProps {
   filters: Filters;
@@ -10,6 +15,8 @@ interface ToolbarProps {
   defaultFeishuUrl: string;
   specifiedFeishuUrl: string;
   settingsOpen: boolean;
+  searchQuery: string;
+  searchSuggestions: SearchSuggestion[];
   loading: boolean;
   canEdit: boolean;
   onRequestEdit: () => void;
@@ -17,6 +24,9 @@ interface ToolbarProps {
   onDefaultFeishuUrlChange: (value: string) => void;
   onSpecifiedFeishuUrlChange: (value: string) => void;
   onSettingsOpenChange: (open: boolean) => void;
+  onSearchQueryChange: (value: string) => void;
+  onSelectSearchSuggestion: (item: ScheduledRequirement) => void;
+  onSearchSubmit: () => void;
   onDefaultSync: () => void;
   onSpecifiedSync: () => void;
   onOpenExport: () => void;
@@ -30,6 +40,8 @@ export function Toolbar({
   defaultFeishuUrl,
   specifiedFeishuUrl,
   settingsOpen,
+  searchQuery,
+  searchSuggestions,
   loading,
   canEdit,
   onRequestEdit,
@@ -37,6 +49,9 @@ export function Toolbar({
   onDefaultFeishuUrlChange,
   onSpecifiedFeishuUrlChange,
   onSettingsOpenChange,
+  onSearchQueryChange,
+  onSelectSearchSuggestion,
+  onSearchSubmit,
   onDefaultSync,
   onSpecifiedSync,
   onOpenExport
@@ -171,6 +186,32 @@ export function Toolbar({
             只看延期
           </label>
         </div>
+        <div className="requirement-search">
+          <input
+            type="search"
+            value={searchQuery}
+            placeholder="搜索需求名称"
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") onSearchSubmit();
+            }}
+          />
+          {searchQuery.trim() && searchSuggestions.length > 0 && (
+            <div className="requirement-search-menu">
+              {searchSuggestions.map(({ item, showProjectTag }) => (
+                <button key={item.sourceId} type="button" onClick={() => onSelectSearchSuggestion(item)}>
+                  <span>{item.name}</span>
+                  {showProjectTag && <em>{item.project || "未归属项目"}</em>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <button className="ghost-button" type="button" onClick={onSearchSubmit} disabled={searchSuggestions.length === 0}>
+          <Search size={16} />
+          搜索
+        </button>
+        <span className="toolbar-divider" />
         <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
           <PencilLine size={14} />
           编辑
