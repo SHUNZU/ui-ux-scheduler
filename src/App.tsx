@@ -150,6 +150,7 @@ export default function App() {
 
   function handleUpdateRequirement(updated: ScheduledRequirement) {
     if (!ensureEditAccess()) return;
+    setError("");
     const patch: Partial<DesignRequirement> = {
       name: updated.name,
       owner: updated.owner,
@@ -182,10 +183,13 @@ export default function App() {
     void saveRequirementPatch(updated.sourceId, patch, getEditKey()).then((cloudRequirements) => {
       if (cloudRequirements) {
         setRequirements(cloudRequirements);
+        setError("");
         setSyncLabel("已保存到云端排期");
       } else {
         setError("保存失败：请确认管理员密码已解锁");
       }
+    }).catch((saveError) => {
+      setError(errorMessage(saveError, "保存失败"));
     });
   }
 
@@ -212,6 +216,7 @@ export default function App() {
         return reordered ? { ...item, sequence: reordered.sequence, manualOverride: true } : item;
       })
     );
+    setError("");
     setSyncLabel(`已调整 ${patches.length} 条需求排序，正在保存`);
 
     void Promise.all(
@@ -220,10 +225,11 @@ export default function App() {
       const latest = [...results].reverse().find(Boolean);
       if (latest) {
         setRequirements(latest);
+        setError("");
         setSyncLabel("已保存拖动排序");
       }
-    }).catch(() => {
-      setError("排序保存失败，请刷新后重试");
+    }).catch((saveError) => {
+      setError(errorMessage(saveError, "排序保存失败"));
     });
   }
 
@@ -260,14 +266,20 @@ export default function App() {
     };
 
     setRequirements((current) => [...current, next]);
+    setError("");
     setSyncLabel(`已新增 ${project} / 新需求，正在保存`);
 
-    const cloudRequirements = await createManualRequirement(next, getEditKey());
-    if (cloudRequirements) {
-      setRequirements(cloudRequirements);
-      setSyncLabel("已保存新增需求");
-    } else {
-      setError("新增需求失败：请确认管理员密码已解锁");
+    try {
+      const cloudRequirements = await createManualRequirement(next, getEditKey());
+      if (cloudRequirements) {
+        setRequirements(cloudRequirements);
+        setError("");
+        setSyncLabel("已保存新增需求");
+      } else {
+        setError("新增需求失败：请确认管理员密码已解锁");
+      }
+    } catch (saveError) {
+      setError(errorMessage(saveError, "新增需求失败"));
     }
   }
 
@@ -280,6 +292,7 @@ export default function App() {
       current.map((item) => (item.project === fromProject ? { ...item, project: toProject, manualOverride: true } : item))
     );
     setActiveTab(toProject);
+    setError("");
     setSyncLabel(`已将 ${fromProject} 改名为 ${toProject}，正在保存`);
 
     void Promise.all(
@@ -288,10 +301,11 @@ export default function App() {
       const latest = [...results].reverse().find(Boolean);
       if (latest) {
         setRequirements(latest);
+        setError("");
         setSyncLabel("已保存项目表名称");
       }
-    }).catch(() => {
-      setError("项目表改名保存失败，请刷新后重试");
+    }).catch((saveError) => {
+      setError(errorMessage(saveError, "项目表改名保存失败"));
     });
   }
 
@@ -309,11 +323,16 @@ export default function App() {
         return patch ? { ...item, sequence: patch.sequence, manualOverride: true } : item;
       })
     );
+    setError("");
     void Promise.all(patches.map((patch) => saveRequirementPatch(patch.sourceId, { sequence: patch.sequence, manualOverride: true }, getEditKey())))
       .then((results) => {
         const latest = [...results].reverse().find(Boolean);
         if (latest) setRequirements(latest);
+        setError("");
         setSyncLabel("已保存表格顺序");
+      })
+      .catch((saveError) => {
+        setError(errorMessage(saveError, "表格顺序保存失败"));
       });
   }
 
@@ -371,12 +390,18 @@ export default function App() {
     if (!ensureEditAccess()) return;
     if (!window.confirm(`确定删除「${requirement.name}」吗？`)) return;
     setRequirements((current) => current.filter((item) => item.sourceId !== requirement.sourceId));
-    const cloudRequirements = await deleteCloudRequirement(requirement.sourceId, getEditKey());
-    if (cloudRequirements) {
-      setRequirements(cloudRequirements);
-      setSyncLabel("已删除该需求");
-    } else {
-      setError("删除失败：请确认管理员密码已解锁");
+    setError("");
+    try {
+      const cloudRequirements = await deleteCloudRequirement(requirement.sourceId, getEditKey());
+      if (cloudRequirements) {
+        setRequirements(cloudRequirements);
+        setError("");
+        setSyncLabel("已删除该需求");
+      } else {
+        setError("删除失败：请确认管理员密码已解锁");
+      }
+    } catch (deleteError) {
+      setError(errorMessage(deleteError, "删除失败"));
     }
   }
 
@@ -385,11 +410,17 @@ export default function App() {
     const rows = requirements.filter((item) => item.project === name);
     if (!window.confirm(`确定删除「${name}」表格及其 ${rows.length} 条需求吗？`)) return;
     setRequirements((current) => current.filter((item) => item.project !== name));
-    const results = await Promise.all(rows.map((item) => deleteCloudRequirement(item.sourceId, getEditKey())));
-    const latest = [...results].reverse().find(Boolean);
-    if (latest) setRequirements(latest);
-    setActiveTab("gantt");
-    setSyncLabel("已删除需求表格");
+    setError("");
+    try {
+      const results = await Promise.all(rows.map((item) => deleteCloudRequirement(item.sourceId, getEditKey())));
+      const latest = [...results].reverse().find(Boolean);
+      if (latest) setRequirements(latest);
+      setActiveTab("gantt");
+      setError("");
+      setSyncLabel("已删除需求表格");
+    } catch (deleteError) {
+      setError(errorMessage(deleteError, "删除表格失败"));
+    }
   }
 
   function handleExportTable(name: string) {
@@ -563,6 +594,10 @@ function hasValidEditSession(): boolean {
 
 function csvCell(value: string): string {
   return `"${value.replace(/"/g, "\"\"")}"`;
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function mergeRequirements(current: DesignRequirement[], incoming: DesignRequirement[]): DesignRequirement[] {

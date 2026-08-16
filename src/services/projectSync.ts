@@ -57,7 +57,9 @@ export async function saveRequirementPatch(sourceId: string, patch: Partial<Desi
     body: JSON.stringify({ sourceId, patch })
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "保存失败"));
+  }
   const payload = (await response.json()) as { requirements?: DesignRequirement[] };
   return payload.requirements ?? null;
 }
@@ -72,7 +74,9 @@ export async function createManualRequirement(requirement: Partial<DesignRequire
     body: JSON.stringify(requirement)
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "新增需求失败"));
+  }
   const payload = (await response.json()) as { requirements?: DesignRequirement[] };
   return payload.requirements ?? null;
 }
@@ -83,7 +87,9 @@ export async function deleteCloudRequirement(sourceId: string, editKey = ""): Pr
     headers: getEditHeaders(editKey)
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    throw new Error(await readApiError(response, "删除失败"));
+  }
   const payload = (await response.json()) as { requirements?: DesignRequirement[] };
   return payload.requirements ?? null;
 }
@@ -125,4 +131,13 @@ async function fetchProjectItems(): Promise<ProjectWorkItem[]> {
 
 function getEditHeaders(editKey: string): HeadersInit {
   return editKey ? { Authorization: `Bearer ${editKey}`, "X-Edit-Key": editKey } : {};
+}
+
+async function readApiError(response: Response, fallback: string): Promise<string> {
+  try {
+    const payload = (await response.json()) as { error?: string };
+    return payload.error ? `${fallback}：${payload.error}` : `${fallback}：${response.status} ${response.statusText}`;
+  } catch {
+    return `${fallback}：${response.status} ${response.statusText}`;
+  }
 }

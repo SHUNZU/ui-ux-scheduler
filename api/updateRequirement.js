@@ -22,6 +22,9 @@ module.exports = async function handler(req, res) {
       ...body.patch,
       manualOverride: true
     });
+    if (!updated) {
+      return res.status(404).json({ error: `Requirement not found: ${body.sourceId}` });
+    }
     const rows = await listRequirements();
     const requirements = rows.map(require("./_lib/supabase").fromDbRow);
 
