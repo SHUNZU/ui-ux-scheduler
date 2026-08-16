@@ -42,6 +42,9 @@ interface ColumnConfig {
 }
 
 const COLUMN_STORAGE_KEY = "uiux-scheduler-table-columns";
+const CONTEXT_MENU_WIDTH = 160;
+const CONTEXT_MENU_HEIGHT = 186;
+const CONTEXT_MENU_MARGIN = 12;
 const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: "drag", label: "", width: 42, fixed: true },
   { id: "index", label: "#", width: 48, fixed: true },
@@ -213,7 +216,7 @@ export function RequirementTable({
               onClick={() => onSelect(item)}
               onContextMenu={(event) => {
                 event.preventDefault();
-                setContextMenu({ x: event.clientX, y: event.clientY, item });
+                setContextMenu({ ...getContextMenuPosition(event.clientX, event.clientY), item });
               }}
               onDragOver={(event) => {
                 if (!draggingId) return;
@@ -373,6 +376,15 @@ function loadColumns(): ColumnConfig[] {
   } catch {
     return DEFAULT_COLUMNS;
   }
+}
+
+function getContextMenuPosition(clientX: number, clientY: number): { x: number; y: number } {
+  const maxX = window.innerWidth - CONTEXT_MENU_WIDTH - CONTEXT_MENU_MARGIN;
+  const maxY = window.innerHeight - CONTEXT_MENU_HEIGHT - CONTEXT_MENU_MARGIN;
+  return {
+    x: Math.max(CONTEXT_MENU_MARGIN, Math.min(clientX, maxX)),
+    y: Math.max(CONTEXT_MENU_MARGIN, Math.min(clientY, maxY))
+  };
 }
 
 function headerClassName(column: ColumnConfig): string {

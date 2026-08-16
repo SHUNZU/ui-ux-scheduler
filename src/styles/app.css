@@ -140,7 +140,7 @@ textarea {
 .tab-menu,
 .row-context-menu {
   position: fixed;
-  z-index: 30;
+  z-index: 80;
   display: grid;
   min-width: 150px;
   padding: 6px;
