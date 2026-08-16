@@ -31,8 +31,8 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit
   };
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <aside className="drawer" onClick={(event) => event.stopPropagation()}>
+    <div className="drawer-panel">
+      <aside className="drawer">
         <button className="icon-button close-button" onClick={onClose} title="关闭">
           <X size={18} />
         </button>
