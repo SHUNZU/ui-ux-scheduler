@@ -132,6 +132,29 @@ describe("scheduleRequirements", () => {
     expect(explicit?.estimateHours).toBe(6);
   });
 
+  it("keeps manually edited schedule dates instead of moving them by capacity", () => {
+    const scheduled = scheduleRequirements(
+      [
+        { ...baseRequirement, id: "one", sourceId: "one", estimateHours: 8, startDate: "2026-08-18" },
+        {
+          ...baseRequirement,
+          id: "manual",
+          sourceId: "manual",
+          estimateHours: 4,
+          manualOverride: true,
+          startDate: "2026-08-18",
+          dueDate: "2026-08-20",
+          sequence: 2
+        }
+      ],
+      "2026-08-13"
+    );
+
+    const manual = scheduled.find((item) => item.sourceId === "manual");
+    expect(manual?.scheduledStart).toBe("2026-08-18");
+    expect(manual?.scheduledEnd).toBe("2026-08-20");
+  });
+
   it("only marks delay after the scheduled end has actually passed", () => {
     const scheduled = scheduleRequirements(
       [
@@ -148,7 +171,7 @@ describe("scheduleRequirements", () => {
       "2026-08-13"
     );
 
-    expect(scheduled[0].scheduledEnd).toBe("2026-08-14");
+    expect(scheduled[0].scheduledEnd).toBe("2026-08-20");
     expect(scheduled[0].delayedDays).toBe(0);
     expect(scheduled[0].delayReason).toBe("");
   });
