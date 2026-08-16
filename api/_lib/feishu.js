@@ -18,6 +18,7 @@ function parseSourceUrl(sourceUrl) {
   const appToken = url.pathname.split("/").filter(Boolean).pop();
   const tableId = url.searchParams.get("table") || "";
   const viewId = url.searchParams.get("view") || "";
+  const recordId = findRecordId(url);
 
   if (!appToken || !tableId) {
     throw new Error("飞书表格链接缺少 appToken 或 table 参数");
@@ -28,8 +29,19 @@ function parseSourceUrl(sourceUrl) {
     appToken,
     tableId,
     viewId,
+    recordId,
     useView: Boolean(viewId)
   };
+}
+
+function findRecordId(url) {
+  for (const [, value] of url.searchParams.entries()) {
+    const match = String(value).match(/rec[a-zA-Z0-9]+/);
+    if (match) return match[0];
+  }
+
+  const hashMatch = decodeURIComponent(url.hash || "").match(/rec[a-zA-Z0-9]+/);
+  return hashMatch ? hashMatch[0] : "";
 }
 
 function parseSources() {
@@ -117,6 +129,22 @@ async function fetchBitableTables(source, token) {
 }
 
 async function fetchBitableTableRecords(source, token) {
+  const fieldIndex = await fetchBitableFieldIndex(source, token);
+
+  if (source.recordId) {
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${source.appToken}/tables/${source.tableId}/records/${source.recordId}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json();
+
+    if (!response.ok || payload.code !== 0) {
+      throw new Error(`Failed to fetch record ${source.recordId}: ${payload.msg || response.statusText}`);
+    }
+
+    return [mapBitableRecord(source, payload.data?.record || payload.data, fieldIndex)];
+  }
+
   const records = [];
   let pageToken = "";
   let hasMore = true;
@@ -141,14 +169,51 @@ async function fetchBitableTableRecords(source, token) {
     hasMore = Boolean(payload.data?.has_more || pageToken);
   } while (hasMore && pageToken);
 
-  return records.map((record) => mapBitableRecord(source, record));
+  return records.map((record) => mapBitableRecord(source, record, fieldIndex));
 }
 
-function mapBitableRecord(source, record) {
+async function fetchBitableFieldIndex(source, token) {
+  const fields = [];
+  let pageToken = "";
+  let hasMore = true;
+  const seenTokens = new Set();
+
+  do {
+    const params = new URLSearchParams({ page_size: "100" });
+    if (pageToken) params.set("page_token", pageToken);
+
+    const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${source.appToken}/tables/${source.tableId}/fields?${params}`;
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const payload = await response.json();
+
+    if (!response.ok || payload.code !== 0) {
+      return new Map();
+    }
+
+    fields.push(...(payload.data?.items || []));
+    const nextPageToken = payload.data?.page_token || payload.data?.next_page_token || "";
+    hasMore = Boolean(payload.data?.has_more && nextPageToken && !seenTokens.has(nextPageToken));
+    if (nextPageToken) seenTokens.add(nextPageToken);
+    pageToken = nextPageToken;
+  } while (hasMore && seenTokens.size < 20);
+
+  const index = new Map();
+  for (const field of fields) {
+    const names = [field.field_name, field.name, field.field_id].filter(Boolean);
+    for (const name of names) {
+      index.set(normalizeFieldKey(name), field.field_id || field.name || field.field_name);
+    }
+  }
+  return index;
+}
+
+function mapBitableRecord(source, record, fieldIndex = new Map()) {
   const fields = record.fields || {};
   const map = source.fieldMap || {};
   const get = (key, fallback = "", aliases = []) => {
-    const candidates = [map[key], key, ...aliases].filter(Boolean);
+    const candidates = resolveFieldCandidates(fields, fieldIndex, [map[key], key, ...aliases].filter(Boolean));
     for (const candidate of candidates) {
       const value = readField(fields[candidate]);
       if (value) return value;
@@ -185,6 +250,26 @@ function mapBitableRecord(source, record) {
     originalStartDate: normalizeDate(get("originalStartDate", "", ["原排期开始"])) || startDate,
     originalEndDate: normalizeDate(get("originalEndDate", "", ["原排期结束"])) || dueDate
   };
+}
+
+function resolveFieldCandidates(fields, fieldIndex, names) {
+  const keys = Object.keys(fields);
+  const candidates = [];
+
+  for (const name of names) {
+    const normalized = normalizeFieldKey(name);
+    const mapped = fieldIndex.get(normalized);
+    if (mapped) candidates.push(mapped);
+    candidates.push(name);
+    const direct = keys.find((key) => normalizeFieldKey(key) === normalized);
+    if (direct) candidates.push(direct);
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function normalizeFieldKey(value) {
+  return String(value || "").replace(/\s+/g, "").toLowerCase();
 }
 
 function buildSourceId(source, recordId) {

@@ -87,6 +87,10 @@ export function Toolbar({
           <RefreshCcw size={16} />
           {loading ? "同步中" : "默认同步"}
         </button>
+        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
+          {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
+          编辑
+        </button>
       </div>
 
       <div className="filters">
@@ -162,13 +166,6 @@ export function Toolbar({
           />
           只看延期
         </label>
-      </div>
-
-      <div className="toolbar-edit-row">
-        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
-          {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
-          编辑
-        </button>
       </div>
 
       <div className="sync-meta">{syncLabel}</div>

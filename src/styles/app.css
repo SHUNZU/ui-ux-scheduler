@@ -29,7 +29,7 @@ textarea {
 .toolbar {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
-  gap: 14px 20px;
+  gap: 10px 20px;
   align-items: end;
   padding: 18px;
   border: 1px solid #dfe5ef;
@@ -221,24 +221,18 @@ textarea {
   display: flex;
   gap: 10px;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .toolbar-actions {
   justify-content: flex-end;
 }
 
-.toolbar-edit-row {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
 .feishu-sync-input {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: min(420px, 42vw);
+  width: min(420px, 32vw);
   min-height: 36px;
   border: 1px solid #cfd8e6;
   border-radius: 6px;
@@ -333,6 +327,9 @@ textarea {
 
 .filters {
   grid-column: 1 / 2;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
 .sync-meta {

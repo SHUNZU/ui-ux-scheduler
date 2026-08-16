@@ -22,7 +22,10 @@ module.exports = async function handler(req, res) {
     const existingRows = await listRequirements();
     const existing = existingRows.map(fromDbRow);
     const merged = mergeSyncedRequirements(existing, normalized);
-    const duplicateSourceIds = findLegacyLinkDuplicates(existing, normalized);
+    const duplicateSourceIds = [
+      ...findLegacyLinkDuplicates(existing, normalized),
+      ...findPlaceholderRows(existing)
+    ];
 
     if (duplicateSourceIds.length > 0) {
       await deleteRequirements(duplicateSourceIds);
@@ -47,6 +50,15 @@ function findLegacyLinkDuplicates(existing, incoming) {
   const incomingRecordIds = new Set(incoming.map((item) => recordIdFromSourceId(item.sourceId)).filter(Boolean));
   return existing
     .filter((item) => item.sourceId.startsWith("飞书链接同步:") && incomingRecordIds.has(recordIdFromSourceId(item.sourceId)))
+    .map((item) => item.sourceId);
+}
+
+function findPlaceholderRows(existing) {
+  return existing
+    .filter((item) => {
+      const recordId = recordIdFromSourceId(item.sourceId);
+      return item.project === "未归属项目" && item.name === recordId && /^rec[a-zA-Z0-9]+$/.test(recordId);
+    })
     .map((item) => item.sourceId);
 }
 
