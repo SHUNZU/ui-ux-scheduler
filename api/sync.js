@@ -2,7 +2,7 @@ const { fetchFeishuWorkItems } = require("./_lib/feishu");
 const { hasEditAccess } = require("./_lib/auth");
 const { isDesignWorkItem, normalizeWorkItem } = require("./_lib/normalize");
 const { scheduleRequirements } = require("./_lib/scheduler");
-const { fromDbRow, listRequirements, upsertRequirements } = require("./_lib/supabase");
+const { deleteRequirements, fromDbRow, listRequirements, upsertRequirements } = require("./_lib/supabase");
 
 module.exports = async function handler(req, res) {
   if (!["GET", "POST"].includes(req.method)) {
@@ -22,7 +22,11 @@ module.exports = async function handler(req, res) {
     const existingRows = await listRequirements();
     const existing = existingRows.map(fromDbRow);
     const merged = mergeSyncedRequirements(existing, normalized);
+    const duplicateSourceIds = findLegacyLinkDuplicates(existing, normalized);
 
+    if (duplicateSourceIds.length > 0) {
+      await deleteRequirements(duplicateSourceIds);
+    }
     await upsertRequirements(merged);
     const rows = await listRequirements();
     const requirements = rows.map(fromDbRow);
@@ -39,6 +43,17 @@ module.exports = async function handler(req, res) {
   }
 };
 
+function findLegacyLinkDuplicates(existing, incoming) {
+  const incomingRecordIds = new Set(incoming.map((item) => recordIdFromSourceId(item.sourceId)).filter(Boolean));
+  return existing
+    .filter((item) => item.sourceId.startsWith("飞书链接同步:") && incomingRecordIds.has(recordIdFromSourceId(item.sourceId)))
+    .map((item) => item.sourceId);
+}
+
+function recordIdFromSourceId(sourceId) {
+  return String(sourceId || "").split(":").pop() || "";
+}
+
 function mergeSyncedRequirements(existing, incoming) {
   const bySource = new Map(existing.map((item) => [item.sourceId, item]));
 
@@ -48,11 +63,6 @@ function mergeSyncedRequirements(existing, incoming) {
 
     return {
       ...next,
-      name: current.name,
-      project: current.project,
-      requester: current.requester,
-      productOwner: current.productOwner,
-      owner: current.owner,
       priority: current.priority,
       status: current.status,
       estimateHours: current.estimateHours,

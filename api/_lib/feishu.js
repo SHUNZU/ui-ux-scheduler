@@ -24,7 +24,7 @@ function parseSourceUrl(sourceUrl) {
   }
 
   return {
-    name: "飞书链接同步",
+    name: "项目需求表",
     appToken,
     tableId,
     viewId,

@@ -57,6 +57,22 @@ async function deleteRequirement(sourceId) {
   });
 }
 
+async function deleteRequirements(sourceIds) {
+  if (!hasSupabaseConfig()) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  if (sourceIds.length === 0) return [];
+
+  const encoded = sourceIds.map((id) => `"${String(id).replace(/"/g, "\"\"")}"`).join(",");
+  return supabaseRequest(`${TABLE}?source_id=in.(${encodeURIComponent(encoded)})`, {
+    method: "DELETE",
+    headers: {
+      Prefer: "return=representation"
+    }
+  });
+}
+
 async function supabaseRequest(path, init = {}) {
   const url = `${process.env.SUPABASE_URL}/rest/v1/${path}`;
   const response = await fetch(url, {
@@ -179,6 +195,7 @@ module.exports = {
   fromDbRow,
   hasSupabaseConfig,
   deleteRequirement,
+  deleteRequirements,
   listRequirements,
   updateRequirement,
   upsertRequirements
