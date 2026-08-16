@@ -102,11 +102,21 @@ export function RequirementDrawer({ requirement, canEdit, onClose, onRequestEdit
           </label>
           <label>
             开始日期
-            <input type="date" value={requirement.startDate ?? requirement.scheduledStart} onFocus={requestIfLocked} onChange={(event) => patch({ startDate: event.target.value })} />
+            <input
+              type="date"
+              value={requirement.scheduledStart}
+              onFocus={requestIfLocked}
+              onChange={(event) => patch({ startDate: event.target.value })}
+            />
           </label>
           <label>
-            截止日期
-            <input type="date" value={requirement.dueDate ?? ""} onFocus={requestIfLocked} onChange={(event) => patch({ dueDate: event.target.value })} />
+            结束日期
+            <input
+              type="date"
+              value={requirement.scheduledEnd}
+              onFocus={requestIfLocked}
+              onChange={(event) => patch({ dueDate: event.target.value })}
+            />
           </label>
           <label className="check-label">
             <input
