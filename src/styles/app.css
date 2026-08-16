@@ -224,6 +224,16 @@ textarea {
   flex-wrap: wrap;
 }
 
+.toolbar-actions {
+  justify-content: flex-end;
+}
+
+.toolbar-edit-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
 .feishu-sync-input {
   display: inline-flex;
   align-items: center;
@@ -249,6 +259,48 @@ textarea {
   outline: 0;
   color: #172033;
   background: transparent;
+}
+
+.settings-anchor {
+  position: relative;
+}
+
+.settings-popover {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  z-index: 35;
+  display: grid;
+  gap: 12px;
+  width: 380px;
+  padding: 14px;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16);
+}
+
+.settings-popover label {
+  display: grid;
+  gap: 7px;
+  color: #526078;
+  font-size: 13px;
+}
+
+.settings-popover textarea {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  border: 1px solid #d7dfeb;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #172033;
+  outline: none;
+}
+
+.settings-popover textarea:focus {
+  border-color: #176bff;
+  box-shadow: 0 0 0 3px rgba(23, 107, 255, 0.12);
 }
 
 .segmented {
@@ -280,7 +332,7 @@ textarea {
 }
 
 .filters {
-  grid-column: 1 / -1;
+  grid-column: 1 / 2;
 }
 
 .sync-meta {

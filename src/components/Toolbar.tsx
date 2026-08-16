@@ -1,4 +1,4 @@
-import { CalendarRange, ChevronDown, Eye, Link, PencilLine, RefreshCcw } from "lucide-react";
+import { CalendarRange, ChevronDown, Eye, Link, PencilLine, RefreshCcw, Settings } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters } from "../types";
 
@@ -7,13 +7,18 @@ interface ToolbarProps {
   owners: string[];
   requesters: string[];
   syncLabel: string;
-  feishuUrl: string;
+  defaultFeishuUrl: string;
+  specifiedFeishuUrl: string;
+  settingsOpen: boolean;
   loading: boolean;
   canEdit: boolean;
   onRequestEdit: () => void;
   onChange: (filters: Filters) => void;
-  onFeishuUrlChange: (value: string) => void;
-  onSync: () => void;
+  onDefaultFeishuUrlChange: (value: string) => void;
+  onSpecifiedFeishuUrlChange: (value: string) => void;
+  onSettingsOpenChange: (open: boolean) => void;
+  onDefaultSync: () => void;
+  onSpecifiedSync: () => void;
 }
 
 export function Toolbar({
@@ -21,13 +26,18 @@ export function Toolbar({
   owners,
   requesters,
   syncLabel,
-  feishuUrl,
+  defaultFeishuUrl,
+  specifiedFeishuUrl,
+  settingsOpen,
   loading,
   canEdit,
   onRequestEdit,
   onChange,
-  onFeishuUrlChange,
-  onSync
+  onDefaultFeishuUrlChange,
+  onSpecifiedFeishuUrlChange,
+  onSettingsOpenChange,
+  onDefaultSync,
+  onSpecifiedSync
 }: ToolbarProps) {
   const patch = (partial: Partial<Filters>) => onChange({ ...filters, ...partial });
   const toggleValue = (values: string[], value: string) =>
@@ -41,22 +51,41 @@ export function Toolbar({
       </div>
 
       <div className="toolbar-actions">
-        <label className="feishu-sync-input" title="粘贴飞书多维表格链接后可同步该表格">
+        <label className="feishu-sync-input specified" title="粘贴飞书多维表格链接后，可只同步这个表格">
           <Link size={15} />
           <input
             type="url"
-            value={feishuUrl}
+            value={specifiedFeishuUrl}
             placeholder="粘贴飞书多维表格链接"
-            onChange={(event) => onFeishuUrlChange(event.target.value)}
+            onChange={(event) => onSpecifiedFeishuUrlChange(event.target.value)}
           />
         </label>
-        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
-          {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
-          编辑
-        </button>
-        <button className="primary-button" onClick={onSync} disabled={loading} title={canEdit ? "同步飞书项目需求" : "输入管理员密码后同步"}>
+        <button className="ghost-button" onClick={onSpecifiedSync} disabled={loading || !specifiedFeishuUrl.trim()} type="button" title="同步左侧输入框里的飞书表格">
           <RefreshCcw size={16} />
-          {loading ? "同步中" : "同步"}
+          指定同步
+        </button>
+        <div className="settings-anchor">
+          <button className="icon-button" onClick={() => onSettingsOpenChange(!settingsOpen)} type="button" title="设置默认同步链接">
+            <Settings size={17} />
+          </button>
+          {settingsOpen && (
+            <div className="settings-popover">
+              <strong>同步设置</strong>
+              <label>
+                <span>默认同步飞书链接</span>
+                <textarea
+                  value={defaultFeishuUrl}
+                  placeholder="粘贴默认飞书多维表格链接"
+                  onChange={(event) => onDefaultFeishuUrlChange(event.target.value)}
+                />
+              </label>
+              <button className="ghost-button" type="button" onClick={() => onSettingsOpenChange(false)}>完成</button>
+            </div>
+          )}
+        </div>
+        <button className="primary-button default-sync-button" onClick={onDefaultSync} disabled={loading} type="button" title={canEdit ? "同步设置里的默认飞书链接" : "输入管理员密码后同步"}>
+          <RefreshCcw size={16} />
+          {loading ? "同步中" : "默认同步"}
         </button>
       </div>
 
@@ -133,6 +162,13 @@ export function Toolbar({
           />
           只看延期
         </label>
+      </div>
+
+      <div className="toolbar-edit-row">
+        <button className={`mode-badge ${canEdit ? "edit" : "readonly"}`} onClick={onRequestEdit} type="button" title={canEdit ? "已解锁编辑权限" : "输入管理员密码解锁编辑"}>
+          {canEdit ? <PencilLine size={14} /> : <Eye size={14} />}
+          编辑
+        </button>
       </div>
 
       <div className="sync-meta">{syncLabel}</div>

@@ -30,6 +30,7 @@ const initialFilters: Filters = {
 const ADMIN_PASSWORD = "admin";
 const EDIT_SESSION_KEY = "uiux-scheduler-edit-session";
 const EDIT_SESSION_DAYS = 7;
+const DEFAULT_FEISHU_URL_KEY = "uiux-scheduler-default-feishu-url";
 
 export default function App() {
   const [requirements, setRequirements] = useState<DesignRequirement[]>([]);
@@ -39,7 +40,9 @@ export default function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [scheduleSeed, setScheduleSeed] = useState(todayIso());
-  const [feishuUrl, setFeishuUrl] = useState("");
+  const [defaultFeishuUrl, setDefaultFeishuUrl] = useState(() => window.localStorage.getItem(DEFAULT_FEISHU_URL_KEY) || "");
+  const [specifiedFeishuUrl, setSpecifiedFeishuUrl] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("gantt");
   const [ganttScale, setGanttScale] = useState<"week" | "month" | "quarter">("week");
   const [canEdit, setCanEdit] = useState(() => hasValidEditSession());
@@ -50,6 +53,10 @@ export default function App() {
   useEffect(() => {
     void handleLoad();
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(DEFAULT_FEISHU_URL_KEY, defaultFeishuUrl);
+  }, [defaultFeishuUrl]);
 
   const scheduled = useMemo(() => scheduleRequirements(requirements, scheduleSeed), [requirements, scheduleSeed]);
   const filtered = useMemo(() => {
@@ -133,12 +140,20 @@ export default function App() {
     }
   }
 
-  async function handleSync() {
+  async function handleDefaultSync() {
+    await syncFromFeishuUrl(defaultFeishuUrl);
+  }
+
+  async function handleSpecifiedSync() {
+    await syncFromFeishuUrl(specifiedFeishuUrl);
+  }
+
+  async function syncFromFeishuUrl(sourceUrl: string) {
     if (!ensureEditAccess()) return;
     setLoading(true);
     setError("");
     try {
-      const result = await triggerProjectSync(getEditKey(), feishuUrl);
+      const result = await triggerProjectSync(getEditKey(), sourceUrl);
       setRequirements(result.requirements);
       setSyncLabel(`已从飞书同步 ${result.requirements.length} 条设计需求，忽略 ${result.ignoredCount} 条非设计需求`);
     } catch (syncError) {
@@ -480,13 +495,18 @@ export default function App() {
         owners={owners}
         requesters={requesters}
         syncLabel={syncLabel}
-        feishuUrl={feishuUrl}
+        defaultFeishuUrl={defaultFeishuUrl}
+        specifiedFeishuUrl={specifiedFeishuUrl}
+        settingsOpen={settingsOpen}
         loading={loading}
         canEdit={canEdit}
         onRequestEdit={ensureEditAccess}
         onChange={setFilters}
-        onFeishuUrlChange={setFeishuUrl}
-        onSync={handleSync}
+        onDefaultFeishuUrlChange={setDefaultFeishuUrl}
+        onSpecifiedFeishuUrlChange={setSpecifiedFeishuUrl}
+        onSettingsOpenChange={setSettingsOpen}
+        onDefaultSync={handleDefaultSync}
+        onSpecifiedSync={handleSpecifiedSync}
       />
 
       <ViewTabs
@@ -506,7 +526,7 @@ export default function App() {
         <div className="error-banner">
           <AlertTriangle size={18} />
           <span>{error}</span>
-          <button onClick={handleSync}>重试</button>
+          <button onClick={handleDefaultSync}>重试</button>
         </div>
       )}
 
