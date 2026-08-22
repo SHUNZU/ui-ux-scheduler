@@ -121,7 +121,10 @@ export default function App() {
   }, [scheduled]);
   const exportProjectOptions = useMemo(() => tableNames.filter(Boolean), [tableNames]);
   const activeTableRequirements = useMemo(
-    () => filtered.filter((item) => (item.project || "需求表格") === activeTab),
+    () => filtered
+      .filter((item) => (item.project || "需求表格") === activeTab)
+      .slice()
+      .sort((a, b) => a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt)),
     [filtered, activeTab]
   );
   const selectedRequirement = useMemo(() => {
@@ -235,11 +238,13 @@ export default function App() {
   }
 
   function handleReorderRequirements(reorderedVisible: ScheduledRequirement[]) {
+    const activeProject = activeTab;
     const visibleIds = new Set(reorderedVisible.map((item) => item.sourceId));
     const visibleQueue = [...reorderedVisible];
     const fullOrder = scheduled
       .slice()
       .sort((a, b) => a.sequence - b.sequence || a.createdAt.localeCompare(b.createdAt))
+      .filter((item) => (item.project || "需求表格") === activeProject)
       .map((item) => (visibleIds.has(item.sourceId) ? visibleQueue.shift() ?? item : item))
       .map((item, index) => ({ ...item, sequence: index + 1, manualOverride: true }));
 
