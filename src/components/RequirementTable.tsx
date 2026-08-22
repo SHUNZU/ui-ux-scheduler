@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { ArrowUpRight, Flame, GripVertical, Link as LinkIcon, UserRound } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_COLORS, STATUS_OPTIONS } from "../lib/constants";
 import { todayIso } from "../lib/date";
@@ -85,6 +85,7 @@ export function RequirementTable({
   const [editingNameId, setEditingNameId] = useState("");
   const [draftName, setDraftName] = useState("");
   const rowRefs = useRef(new Map<string, HTMLTableRowElement>());
+  const pointerDragRef = useRef<{ sourceId: string; targetId: string; pointerId: number } | null>(null);
   const today = todayIso();
 
   const tableWidth = useMemo(() => columns.reduce((sum, column) => sum + column.width, 0), [columns]);
@@ -109,15 +110,15 @@ export function RequirementTable({
     onUpdate({ ...item, ...partial, manualOverride: true });
   };
 
-  const handleDrop = (target: ScheduledRequirement) => {
-    if (!draggingId || draggingId === target.sourceId) {
+  const reorderRows = (sourceId: string, targetId: string) => {
+    if (!sourceId || !targetId || sourceId === targetId) {
       setDraggingId("");
       setDropTargetId("");
       return;
     }
 
-    const fromIndex = requirements.findIndex((item) => item.sourceId === draggingId);
-    const toIndex = requirements.findIndex((item) => item.sourceId === target.sourceId);
+    const fromIndex = requirements.findIndex((item) => item.sourceId === sourceId);
+    const toIndex = requirements.findIndex((item) => item.sourceId === targetId);
     if (fromIndex < 0 || toIndex < 0) return;
 
     const next = [...requirements];
@@ -126,6 +127,41 @@ export function RequirementTable({
     onReorder(next.map((item, index) => ({ ...item, sequence: index + 1, manualOverride: true })));
     setDraggingId("");
     setDropTargetId("");
+  };
+
+  const startRowPointerDrag = (item: ScheduledRequirement, event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pointerDragRef.current = { sourceId: item.sourceId, targetId: item.sourceId, pointerId: event.pointerId };
+    setDraggingId(item.sourceId);
+    setDropTargetId(item.sourceId);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveRowPointerDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const session = pointerDragRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    const row = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLTableRowElement>("tr[data-source-id]");
+    const targetId = row?.dataset.sourceId || "";
+    if (!targetId || targetId === session.targetId) return;
+    session.targetId = targetId;
+    setDropTargetId(targetId);
+  };
+
+  const endRowPointerDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const session = pointerDragRef.current;
+    if (!session || session.pointerId !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    pointerDragRef.current = null;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture can already be released by the browser if the drag is interrupted.
+    }
+    reorderRows(session.sourceId, session.targetId);
   };
 
   const moveColumn = (targetId: ColumnId) => {
@@ -213,6 +249,7 @@ export function RequirementTable({
           {requirements.map((item, index) => (
             <tr
               key={item.sourceId}
+              data-source-id={item.sourceId}
               ref={(node) => {
                 if (node) rowRefs.current.set(item.sourceId, node);
                 else rowRefs.current.delete(item.sourceId);
@@ -223,36 +260,9 @@ export function RequirementTable({
                 focusSourceId === item.sourceId ? "focused-row" : ""
               ].filter(Boolean).join(" ")}
               onClick={() => onSelect(item)}
-              draggable
-              onDragStart={(event) => {
-                const target = event.target as HTMLElement | null;
-                if (!target?.closest(".drag-handle")) {
-                  event.preventDefault();
-                  return;
-                }
-                setDraggingId(item.sourceId);
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", item.sourceId);
-              }}
-              onDragEnd={() => {
-                setDraggingId("");
-                setDropTargetId("");
-              }}
               onContextMenu={(event) => {
                 event.preventDefault();
                 setContextMenu({ ...getContextMenuPosition(event.clientX, event.clientY), item });
-              }}
-              onDragOver={(event) => {
-                if (!draggingId) return;
-                event.preventDefault();
-                setDropTargetId(item.sourceId);
-              }}
-              onDragLeave={() => {
-                if (dropTargetId === item.sourceId) setDropTargetId("");
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                handleDrop(item);
               }}
             >
               {columns.map((column) => (
@@ -283,7 +293,10 @@ export function RequirementTable({
           className="drag-handle"
           title="拖动调整排序"
           onClick={(event) => { event.stopPropagation(); }}
-          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => startRowPointerDrag(item, event)}
+          onPointerMove={moveRowPointerDrag}
+          onPointerUp={endRowPointerDrag}
+          onPointerCancel={endRowPointerDrag}
         >
           <GripVertical size={15} />
         </button>

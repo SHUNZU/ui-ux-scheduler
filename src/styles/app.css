@@ -1201,6 +1201,8 @@ textarea {
   color: #8a95a8;
   background: transparent;
   cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .drag-handle:hover {
