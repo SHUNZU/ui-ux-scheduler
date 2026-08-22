@@ -10,6 +10,7 @@ module.exports = async function handler(req, res) {
     ok: true,
     supabase: hasSupabaseConfig(),
     feishu: Boolean(process.env.FEISHU_APP_ID && process.env.FEISHU_APP_SECRET),
+    feishuProject: Boolean(process.env.FEISHU_PROJECT_PLUGIN_TOKEN && process.env.FEISHU_PROJECT_USER_KEY),
     sources: parseSourcesCount(),
     syncProtected: Boolean(process.env.SYNC_SECRET)
   });
