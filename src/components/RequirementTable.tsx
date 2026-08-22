@@ -223,6 +223,21 @@ export function RequirementTable({
                 focusSourceId === item.sourceId ? "focused-row" : ""
               ].filter(Boolean).join(" ")}
               onClick={() => onSelect(item)}
+              draggable
+              onDragStart={(event) => {
+                const target = event.target as HTMLElement | null;
+                if (!target?.closest(".drag-handle")) {
+                  event.preventDefault();
+                  return;
+                }
+                setDraggingId(item.sourceId);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", item.sourceId);
+              }}
+              onDragEnd={() => {
+                setDraggingId("");
+                setDropTargetId("");
+              }}
               onContextMenu={(event) => {
                 event.preventDefault();
                 setContextMenu({ ...getContextMenuPosition(event.clientX, event.clientY), item });
@@ -266,19 +281,9 @@ export function RequirementTable({
       return (
         <button
           className="drag-handle"
-          draggable
           title="拖动调整排序"
           onClick={(event) => { event.stopPropagation(); }}
-          onDragStart={(event) => {
-            event.stopPropagation();
-            setDraggingId(item.sourceId);
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", item.sourceId);
-          }}
-          onDragEnd={() => {
-            setDraggingId("");
-            setDropTargetId("");
-          }}
+          onMouseDown={(event) => event.stopPropagation()}
         >
           <GripVertical size={15} />
         </button>
