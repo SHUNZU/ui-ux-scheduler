@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { CalendarRange, ChevronDown, Download, Link, PencilLine, RefreshCcw, Search, Settings } from "lucide-react";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../lib/constants";
 import { Filters, ScheduledRequirement } from "../types";
@@ -59,9 +60,33 @@ export function Toolbar({
   const patch = (partial: Partial<Filters>) => onChange({ ...filters, ...partial });
   const toggleValue = (values: string[], value: string) =>
     values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
+  const toolbarRef = useRef<HTMLElement | null>(null);
+  const [openFilter, setOpenFilter] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (!toolbarRef.current?.contains(target)) {
+        setOpenFilter("");
+        setSearchOpen(false);
+        onSettingsOpenChange(false);
+        return;
+      }
+      if (!target.closest(".multi-filter, .settings-anchor, .requirement-search")) {
+        setOpenFilter("");
+        setSearchOpen(false);
+        onSettingsOpenChange(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [onSettingsOpenChange]);
 
   return (
-    <header className="toolbar">
+    <header className="toolbar" ref={toolbarRef}>
       <div className="toolbar-title">
         <span className="eyebrow">UIUX Requirement Scheduler</span>
         <h1>UIUX 需求排期</h1>
@@ -114,34 +139,46 @@ export function Toolbar({
       <div className="filter-row">
         <div className="filters">
           <MultiFilter
+            id="requesters"
             label="下发人"
             allLabel="全部下发人"
             options={requesters}
             values={filters.requesters}
+            open={openFilter === "requesters"}
+            onOpenChange={(open) => setOpenFilter(open ? "requesters" : "")}
             onChange={(value) => patch({ requesters: toggleValue(filters.requesters, value) })}
             onClear={() => patch({ requesters: [] })}
           />
           <MultiFilter
+            id="owners"
             label="负责人"
             allLabel="全部负责人"
             options={owners}
             values={filters.owners}
+            open={openFilter === "owners"}
+            onOpenChange={(open) => setOpenFilter(open ? "owners" : "")}
             onChange={(value) => patch({ owners: toggleValue(filters.owners, value) })}
             onClear={() => patch({ owners: [] })}
           />
           <MultiFilter
+            id="statuses"
             label="状态"
             allLabel="全部状态"
             options={[...STATUS_OPTIONS]}
             values={filters.statuses}
+            open={openFilter === "statuses"}
+            onOpenChange={(open) => setOpenFilter(open ? "statuses" : "")}
             onChange={(value) => patch({ statuses: toggleValue(filters.statuses, value) })}
             onClear={() => patch({ statuses: [] })}
           />
           <MultiFilter
+            id="priorities"
             label="优先级"
             allLabel="全部优先级"
             options={[...PRIORITY_OPTIONS]}
             values={filters.priorities}
+            open={openFilter === "priorities"}
+            onOpenChange={(open) => setOpenFilter(open ? "priorities" : "")}
             onChange={(value) => patch({ priorities: toggleValue(filters.priorities, value) })}
             onClear={() => patch({ priorities: [] })}
           />
@@ -191,15 +228,19 @@ export function Toolbar({
             type="search"
             value={searchQuery}
             placeholder="搜索需求名称"
-            onChange={(event) => onSearchQueryChange(event.target.value)}
+            onFocus={() => setSearchOpen(true)}
+            onChange={(event) => {
+              setSearchOpen(true);
+              onSearchQueryChange(event.target.value);
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") onSearchSubmit();
             }}
           />
-          {searchQuery.trim() && searchSuggestions.length > 0 && (
+          {searchOpen && searchQuery.trim() && searchSuggestions.length > 0 && (
             <div className="requirement-search-menu">
               {searchSuggestions.map(({ item, showProjectTag }) => (
-                <button key={item.sourceId} type="button" onClick={() => onSelectSearchSuggestion(item)}>
+                <button key={item.sourceId} type="button" onClick={() => { onSelectSearchSuggestion(item); setSearchOpen(false); }}>
                   <span>{item.name}</span>
                   {showProjectTag && <em>{item.project || "未归属项目"}</em>}
                 </button>
@@ -224,15 +265,18 @@ export function Toolbar({
 }
 
 interface MultiFilterProps {
+  id: string;
   label: string;
   allLabel: string;
   options: string[];
   values: string[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onChange: (value: string) => void;
   onClear: () => void;
 }
 
-function MultiFilter({ label, allLabel, options, values, onChange, onClear }: MultiFilterProps) {
+function MultiFilter({ id, label, allLabel, options, values, open, onOpenChange, onChange, onClear }: MultiFilterProps) {
   const summary = values.length === 0
     ? allLabel
     : values.length === 1
@@ -240,13 +284,13 @@ function MultiFilter({ label, allLabel, options, values, onChange, onClear }: Mu
       : `${label} ${values.length} 项`;
 
   return (
-    <details className="multi-filter">
-      <summary>
+    <div className="multi-filter" data-filter-id={id}>
+      <button type="button" className="multi-filter-trigger" onClick={() => onOpenChange(!open)}>
         <span>{summary}</span>
         <ChevronDown size={14} />
-      </summary>
-      <div className="multi-filter-menu">
-        <button type="button" className="multi-filter-clear" onClick={onClear}>全部</button>
+      </button>
+      {open && <div className="multi-filter-menu">
+        <button type="button" className="multi-filter-clear" onClick={() => { onClear(); onOpenChange(false); }}>全部</button>
         {options.map((option) => (
           <label key={option} className="multi-filter-option">
             <input
@@ -257,7 +301,7 @@ function MultiFilter({ label, allLabel, options, values, onChange, onClear }: Mu
             <span>{option}</span>
           </label>
         ))}
-      </div>
-    </details>
+      </div>}
+    </div>
   );
 }

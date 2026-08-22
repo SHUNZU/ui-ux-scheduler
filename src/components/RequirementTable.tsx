@@ -110,12 +110,6 @@ export function RequirementTable({
   };
 
   const handleDrop = (target: ScheduledRequirement) => {
-    if (!canEdit) {
-      onRequestEdit();
-      setDraggingId("");
-      setDropTargetId("");
-      return;
-    }
     if (!draggingId || draggingId === target.sourceId) {
       setDraggingId("");
       setDropTargetId("");
@@ -272,12 +266,11 @@ export function RequirementTable({
       return (
         <button
           className="drag-handle"
-          draggable={canEdit}
+          draggable
           title="拖动调整排序"
-          onClick={(event) => { event.stopPropagation(); if (!canEdit) onRequestEdit(); }}
+          onClick={(event) => { event.stopPropagation(); }}
           onDragStart={(event) => {
             event.stopPropagation();
-            if (!canEdit) return;
             setDraggingId(item.sourceId);
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", item.sourceId);

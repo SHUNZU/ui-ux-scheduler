@@ -235,8 +235,6 @@ export default function App() {
   }
 
   function handleReorderRequirements(reorderedVisible: ScheduledRequirement[]) {
-    if (!ensureEditAccess()) return;
-
     const visibleIds = new Set(reorderedVisible.map((item) => item.sourceId));
     const visibleQueue = [...reorderedVisible];
     const fullOrder = scheduled
@@ -258,6 +256,11 @@ export default function App() {
       })
     );
     setError("");
+    if (!canEdit) {
+      setSyncLabel(`已调整 ${patches.length} 条需求排序`);
+      return;
+    }
+
     setSyncLabel(`已调整 ${patches.length} 条需求排序，正在保存`);
 
     void Promise.all(

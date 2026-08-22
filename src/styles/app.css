@@ -501,7 +501,7 @@ textarea {
 
 .filters input,
 .date-filter,
-.multi-filter summary {
+.multi-filter-trigger {
   min-height: 34px;
   border: 1px solid #d7dfeb;
   border-radius: 6px;
@@ -509,7 +509,7 @@ textarea {
 }
 
 .toggle,
-.multi-filter summary,
+.multi-filter-trigger,
 .date-filter {
   flex: 0 0 auto;
   white-space: nowrap;
@@ -530,7 +530,7 @@ textarea {
   position: relative;
 }
 
-.multi-filter summary {
+.multi-filter-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
@@ -539,16 +539,13 @@ textarea {
   padding: 0 10px;
   color: #334155;
   cursor: pointer;
-  list-style: none;
+  font: inherit;
 }
 
-.multi-filter summary::-webkit-details-marker {
-  display: none;
-}
-
-.multi-filter[open] summary {
+.multi-filter-trigger:focus-visible {
   border-color: #2f6df6;
   box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.12);
+  outline: none;
 }
 
 .multi-filter-menu {

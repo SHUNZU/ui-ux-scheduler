@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, FileUp, GanttChartSquare, MoreVertical, Plus, Table2, Trash2 } from "lucide-react";
 
 interface ViewTabsProps {
@@ -30,6 +30,20 @@ export function ViewTabs({
   const [draft, setDraft] = useState("");
   const [menu, setMenu] = useState("");
   const [dragging, setDragging] = useState("");
+  const tabsRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (!tabsRef.current?.contains(target) || !target.closest(".tab-more, .tab-menu")) {
+        setMenu("");
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
 
   const submitRename = () => {
     const next = draft.trim();
@@ -39,7 +53,7 @@ export function ViewTabs({
   };
 
   return (
-    <nav className="view-tabs" aria-label="视图与表格">
+    <nav className="view-tabs" aria-label="视图与表格" ref={tabsRef}>
       <button className={`view-tab gantt-tab ${activeTab === "gantt" ? "active" : ""}`} onClick={() => onSelect("gantt")}>
         <GanttChartSquare size={18} />
         甘特图
